@@ -291,6 +291,16 @@ Optimization smoke run completed for a small low-dimensional phase control grid 
 Important preliminary result: center-view PSFs for 5/7/10 m are nearly identical under the current debug parameters, while some corner-view PSFs differ more strongly. Do not over-interpret until sampling/crop/distance issues are reviewed.
 ```
 
+Current baseline/image-forward status as of 2026-06-02:
+
+```text
+Traditional phase baselines now include lens, random, spiral, double_helix, and multiring_spiral. They are simple template baselines, not exact reproduction of a specific paper's optimized mask.
+scripts/02_psf_fisher_experiment.py baseline smoke completed with 5 phase types and produced 225 Fisher rows.
+src/simulation/rgbd_forward.py now contains direct per-pixel spatially varying PSF rendering for small RGB-D patches, following Y(u,v)=sum_x sum_y I(x,y) h(u,v; x,y, D, alpha_x, alpha_y). This is intentionally slow but formula-direct; do not replace it with depth-binned convolution for the first image-level validation.
+scripts/03_image_forward_fisher_experiment.py loads the local Hypersim pilot data, renders a small patch, computes depth perturbation distances, scalar patch-depth Fisher, SSIM, frequency/L1/JS/Mahalanobis metrics, and a tiny probe smoke test.
+Image-forward smoke ran with patch_size=6, psf_size=15, grid=32, phase=random. The chosen center patch was nearly dark, so results are only a pipeline smoke test. Next improve patch selection before interpreting image-level numbers.
+```
+
 Current depth-learning scaffold status as of 2026-06-02:
 
 ```text
@@ -299,7 +309,7 @@ configs/depth_learning.yaml defines a smoke setup with input_mode = rgb / meta /
 src/models/simple_unet.py contains DepthUNet, a compact UNet/FastDepth-style skip-fusion metric-depth baseline constrained to the 1-10 m range, plus a placeholder FoundationDepthAdapter for later Depth Anything / DPT / MiDaS style backbones.
 src/models/depth_data.py contains a SyntheticDepthDataset for train/eval smoke tests and a not-yet-implemented ManifestDepthDataset hook for future processed HM3D/Hypersim/metasurface encoded data.
 src/models/depth_losses.py and src/models/depth_metrics.py contain masked L1, SiLog, AbsRel, RMSE, MAE, and delta1 metrics.
-scripts/04_train_depth_model.py and scripts/04_evaluate_depth_model.py run the training/evaluation smoke loop and save outputs/depth_learning/smoke/depth_model.pt plus CSV metrics.
+scripts/04_depth_learning.py is the single train/eval entry point with --mode train / eval, and saves outputs/depth_learning/smoke/depth_model.pt plus CSV metrics.
 Smoke checks passed in conda env metasurface-depth on 2026-06-02.
 Do not interpret the synthetic smoke metrics as experimental results. The next real step for learning is to define a processed RGB-D/Meta manifest after the PSF sampling and RGB-D forward model are physically credible.
 ```
