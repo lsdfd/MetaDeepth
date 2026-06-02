@@ -1,0 +1,47 @@
+project:
+  name: metasurface_depth_first_stage
+  stage: first_stage_system_parameter_scan
+  description: user-targeted long-range wide-FOV metasurface depth imaging system
+
+optics:
+  wavelength_nm: 590.0
+  bandwidth_nm: 10.0
+  metasurface_period_nm: 400.0
+  aperture_scan_mm: [3.0, 5.0, 10.0]
+  metasurface_sensor_distance_scan_mm: [3.0, 5.0, 10.0, 15.0]
+  phase_baselines: [lens, random, spiral, double_helix, multiring_spiral]
+
+scene:
+  fov_scan_deg: [30.0, 60.0, 90.0]
+  fov_definition: per_axis_square
+  depth_range_m: [1.0, 10.0]
+  depth_samples_m: [1.0, 2.0, 3.0, 5.0, 7.0, 10.0]
+  angle_sample_policy: center_cross_corners
+
+sensor:
+  resolution:
+    width: 5472
+    height: 3648
+  pixel_pitch_um: 2.4
+  color_filter: rgb
+
+sampling:
+  pupil_grid_main: 1024
+  pupil_grid_debug: 512
+  pupil_padding_factor: 2.0
+  psf_grid: 128
+  normalize_psf: true
+  random_seed: 0
+
+outputs:
+  psf_figures_dir: outputs/psf_figures/first_stage
+  psf_cache_dir: data/psf_cache/first_stage
+
+fisher:
+  photon_count: 100000.0
+  background_photons: 0.0
+  phase_control_grid: 16
+  optimize_steps: 10
+  learning_rate: 0.05
+  robust_weight: 0.25
+  eps: 1.0e-9

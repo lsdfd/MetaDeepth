@@ -34,7 +34,10 @@
 
 \section{研究目标与核心假设}
 
-本研究拟探索一种面向大视场、长距离、被动单目深度感知的超表面物理编码方案。需要特别说明的是，第一版实验不直接承诺几十米距离和 $90^\circ$ 以上超大视场的真实硬件效果，而是先参考已有 metasurface depth camera 的参数范围，在近中距和受限视场内验证信息最优编码是否有效，再通过口径、视场角和传播距离扫描评估向更大空间扩展的可行性。核心思想不是直接选择已有的双螺旋 PSF、旋转 PSF 或经验相位模板，而是将超表面看作一个可优化的物理测量前端，通过 Fisher information、CRLB 和图像级可辨性指标，使 CMOS 编码图在目标距离和视场范围内对深度具有更强、更少混淆的可观测信息。
+本研究拟探索一种面向大视场、长距离、被动单目深度感知的超表面物理编码方案。需要特别说明的是，第一版实验不直接承诺几十米距离和 $90^\circ$ 以上超大视场的真实硬件效果，但应围绕 $1$--$10\,\mathrm{m}$、$30^\circ/60^\circ/90^\circ$ 的用户目标系统建立 baseline，并通过口径、视场角、传播距离和信噪比扫描评估该目标的物理可行性。核心思想不是直接选择已有的双螺旋 PSF、旋转 PSF 或经验相位模板，而是将超表面看作一个可优化的物理测量前端，通过 Fisher information、CRLB 和图像级可辨性指标，使 CMOS 编码图在目标距离和视场范围内对深度具有更强、更少混淆的可观测信息。
+
+\paragraph{2026-06 修正说明}
+第一版代码目标已按用户确认修正为面向 $1$--$10\,\mathrm{m}$ 距离范围和 $30^\circ/60^\circ/90^\circ$ 视场扫描；Nano-3D-like 的 $0.2$--$1.2\,\mathrm{m}$ 近距参数只作为文献参考和必要时的 sanity reference，不再作为本项目第一版主 baseline。
 
 本研究的核心假设为：
 \begin{quote}
@@ -79,13 +82,13 @@
 \addlinespace
 滤光片 & $590\,\mathrm{nm}$，带宽 $10\,\mathrm{nm}$ & 保持单波长/窄带 PSF 假设；同时需承认光通量显著下降。 \\
 \addlinespace
-主深度范围 & $\mathcal Z_{\mathrm{main}}=[0.2,1.2]\,\mathrm{m}$ & 对齐 Nano-3D 的 $20$--$120\,\mathrm{cm}$ 设计范围，先验证近距物理编码链路。 \\
+主深度范围 & $\mathcal Z_{\mathrm{main}}=[1,10]\,\mathrm{m}$ & 对齐本项目的大视场、长距离深度感知目标；第一版即围绕该范围建立 PSF baseline 和可行性分析。 \\
 \addlinespace
-扩展深度扫描 & $[1,5]\,\mathrm{m}$，$[5,10]\,\mathrm{m}$ & 只作为 feasibility map，不直接承诺效果。 \\
+深度采样建议 & $1,3,5,10\,\mathrm{m}$ & 第一阶段用于观察长距离下 PSF 随深度变化是否仍可分辨，后续可加密采样。 \\
 \addlinespace
-主 FOV & $30^\circ$ & 即中心左右约 $\pm15^\circ$；更贴近现有 metasurface depth prototype 的有限视场。 \\
+主 FOV & $30^\circ$ & 即中心左右约 $\pm15^\circ$；作为第一版最稳妥的起始视场。 \\
 \addlinespace
-扩展 FOV 扫描 & $30^\circ,60^\circ,90^\circ$ & 用于分析大视场下 depth-angle 混淆和滤光片角度效应。 \\
+FOV 扫描 & $30^\circ,60^\circ,90^\circ$ & 用于分析大视场下 depth-angle 混淆、滤光片角度效应和系统可扩展性。 \\
 \addlinespace
 超表面口径 & $D_{\mathrm{ap}}=3\,\mathrm{mm}$ & 对齐 Nano-3D 的 $3\,\mathrm{mm}$ metalens；后续扫描 $2,3,5,10\,\mathrm{mm}$。 \\
 \addlinespace
@@ -97,13 +100,13 @@
 \addlinespace
 CMOS 参考 & $5472\times3648$，$p_s=2.4\,\mu\mathrm{m}$ & 对齐 Sony IMX183 / FLIR Blackfly-S 类配置；网络训练时可 crop/resize 到 $512$ 或 $640$。 \\
 \addlinespace
-主数据集 & Hypersim & 近距、室内、高真实感、dense depth，适合第一版 $0.2$--$1.2\,\mathrm{m}$ 或 $0.5$--$5\,\mathrm{m}$ 验证。 \\
+主数据集 & 待按 $1$--$10\,\mathrm{m}$ 和 FOV 需求筛选 & Hypersim 可用于室内中距验证；TartanAir/TartanGround 或 Virtual KITTI 2 可用于机器人/无人机视角和更远距离补充。 \\
 \addlinespace
 补充数据集 & TartanAir/TartanGround & 用于机器人/无人机视角和 $30^\circ$--$90^\circ$ FOV 扫描，但需按目标距离 mask。 \\
 \bottomrule
 \end{longtable}
 
-这套参数的定位是：先复现和超越已有近距 metalens depth camera 的物理编码思想，再评估是否能向更大 FOV 和更远距离扩展。若在 $0.2$--$1.2\,\mathrm{m}$ 内都无法形成明显优势，则不应直接讨论 $10\,\mathrm{m}$ 以上目标。
+这套参数的定位是：以已有 metalens depth camera 的硬件量级作为参考，但第一版仿真目标直接服务于 $1$--$10\,\mathrm{m}$ 和 $30^\circ/60^\circ/90^\circ$ 的系统可行性评估。若 $5$--$10\,\mathrm{m}$ 区间的信息量不足，应通过口径、传播距离、SNR 和任务定义重新评估，而不是回退为近距目标。
 
 \subsection{工作波长、滤光片与光通量}
 
@@ -294,15 +297,15 @@ CMOS 参考 & $5472\times3648$，$p_s=2.4\,\mu\mathrm{m}$ & 对齐 Sony IMX183 /
 
 \subsection{目标深度与视场}
 
-第一版主深度范围不应设得过远。参考已有工作，主实验取：
+第一版主深度范围按本项目目标修正为：
 \begin{equation}
-  \mathcal Z_{\mathrm{main}}=[0.2,1.2]\,\mathrm{m}.
+  \mathcal Z_{\mathrm{main}}=[1,10]\,\mathrm{m}.
 \end{equation}
-扩展扫描：
+第一阶段可先使用离散深度采样：
 \begin{equation}
-  [1,5]\,\mathrm{m},\qquad [5,10]\,\mathrm{m}.
+  z\in\{1,3,5,10\}\,\mathrm{m},
 \end{equation}
-其中 $5$--$10\,\mathrm{m}$ 只作为物理可行性分析，不作为第一版必须达到的重建目标。
+后续再根据 PSF 变化和 Fisher/CRLB 结果加密采样。Nano-3D-like 的 $0.2$--$1.2\,\mathrm{m}$ 可作为 sanity reference，但不是本项目第一版主目标。
 
 一般记目标深度范围为：
 \begin{equation}
@@ -317,7 +320,7 @@ CMOS 参考 & $5472\times3648$，$p_s=2.4\,\mu\mathrm{m}$ & 对齐 Sony IMX183 /
 \begin{equation}
   30^\circ,\quad 60^\circ,\quad 90^\circ.
 \end{equation}
-其中 $90^\circ$ 可对齐 TartanAir/TartanGround 的相机设置，但不应作为第一版硬件目标。一般目标视场范围为：
+其中 $90^\circ$ 作为第一版系统扩展扫描的一部分，用于暴露大视场边缘处的 depth-angle 混淆和滤光片角度效应。一般目标视场范围为：
 \begin{equation}
   \mathcal A=
   [-\alpha_{\max},\alpha_{\max}]^2.
@@ -583,6 +586,9 @@ Fisher matrix 分块：
   \item 人工螺旋/分环相位；
   \item Fisher-optimized phase。
 \end{itemize}
+
+\paragraph{传统 PSF baseline 参考}
+第一版传统相位 baseline 可参考：double-helix / rotating PSF 的单次三维成像工作 \href{https://pmc.ncbi.nlm.nih.gov/articles/PMC5745098/}{spatially rotating PSF microscopy}，photon-efficient DH-PSF localization \href{https://pmc.ncbi.nlm.nih.gov/articles/PMC3207371/}{DH-PSF microscopy}，Fisher-information optimized DH-PSF localization \href{https://pmc.ncbi.nlm.nih.gov/articles/PMC3971058/}{nanometric double-helix PSF}，multiring spiral phase plate 产生 rotating PSF 的三维追踪 \href{https://pmc.ncbi.nlm.nih.gov/articles/PMC9799159/}{multiring spiral phase plate}，以及用于计算深度成像的 diffracted rotation / spiral PSF 学习框架 \href{https://arxiv.org/abs/2204.07076}{diffracted rotation depth reconstruction}、\href{https://arxiv.org/abs/2207.00945}{polarized spiral PSF}。这些 baseline 先作为可解释相位模板和 Fisher 对比对象，后续若要严格复现某篇论文的最优 phase mask，再单独替换相位定义。
 
 输出结果包括：
 \begin{itemize}
@@ -865,7 +871,7 @@ Meta 分支提取物理编码特征：
 
 \subsection{第一阶段主数据集}
 
-第一阶段优先选择 Hypersim，而不是直接使用户外长距离数据集。原因是第一版物理系统主距离为 $0.2$--$1.2\,\mathrm{m}$ 或 $0.5$--$5\,\mathrm{m}$，更接近室内和近距物体场景。
+第一阶段数据集应服务于 $1$--$10\,\mathrm{m}$ 和 $30^\circ/60^\circ/90^\circ$ 的目标范围。Hypersim 可用于室内中距验证和物理 forward model 调试，但不应被写成唯一主数据集；TartanAir/TartanGround、Virtual KITTI 2 等具有机器人/无人机或户外视角的数据集应作为大视场和中远距离补充。
 
 \paragraph{Hypersim}
 \begin{itemize}
@@ -881,15 +887,9 @@ Meta 分支提取物理编码特征：
 \begin{equation}
   M_{\mathrm{valid}}(x,y)
   =
-  \mathbb 1[0.2<D(x,y)<1.2]
+  \mathbb 1[1<D(x,y)<10].
 \end{equation}
-或：
-\begin{equation}
-  M_{\mathrm{valid}}(x,y)
-  =
-  \mathbb 1[0.5<D(x,y)<5].
-\end{equation}
-超出范围的像素可作为背景保留，但不参与 metric depth loss。
+超出范围的像素可作为背景保留，但不参与 metric depth loss。若数据集中 $5$--$10\,\mathrm{m}$ 有效像素不足，应记录覆盖率并补充更合适的数据源，而不是把第一版目标改回近距。
 
 \subsection{第二阶段补充数据集}
 
@@ -898,8 +898,8 @@ Meta 分支提取物理编码特征：
   \item 类型：合成机器人/无人机/地面机器人数据；
   \item 标注：RGB、depth、segmentation、pose、flow 等；
   \item 相机：TartanGround 文档中包含 $90^\circ$ FOV、$640\times640$ 相机设置；
-  \item 用途：不是第一版近距硬件主训练，而是用于研究 $30^\circ$、$60^\circ$、$90^\circ$ FOV 下的几何和角度混淆；
-  \item 注意：若目标深度为 $0.2$--$1.2\,\mathrm{m}$ 或 $0.5$--$5\,\mathrm{m}$，必须按深度范围 mask，大量远处像素不能直接作为有效监督。
+  \item 用途：用于研究 $1$--$10\,\mathrm{m}$、$30^\circ$、$60^\circ$、$90^\circ$ FOV 下的几何和角度混淆；
+  \item 注意：必须按 $1$--$10\,\mathrm{m}$ 目标深度范围 mask，范围外像素不能直接作为有效监督。
 \end{itemize}
 
 \paragraph{Virtual KITTI 2}
@@ -908,7 +908,7 @@ Meta 分支提取物理编码特征：
   \item 分辨率：常见 $1242\times375$；
   \item 标注：RGB、depth、segmentation、flow、pose、calib.txt；
   \item 优点：户外、中远距离、天气光照可控；
-  \item 用途：后续 $5$--$10\,\mathrm{m}$ 甚至更远距离可行性分析和户外泛化，不建议作为第一阶段主训练集。
+  \item 用途：补充 $5$--$10\,\mathrm{m}$ 区间的可行性分析和户外泛化验证。
 \end{itemize}
 
 \paragraph{DIODE}
@@ -945,7 +945,7 @@ Meta 分支提取物理编码特征：
 
 \subsection{光学可行性实验}
 
-目标：先验证近距和中距是否存在足够物理深度信息，再评估长距离和大视场扩展可行性。
+目标：直接评估 $1$--$10\,\mathrm{m}$ 和大视场条件下是否存在足够物理深度信息，并通过口径、传播距离和视场扫描形成可行性地图。
 
 实验：
 \begin{equation}
@@ -955,9 +955,9 @@ Meta 分支提取物理编码特征：
 
 第一版必须报告以下扫描：
 \begin{equation}
-  z\in[0.2,1.2]\,\mathrm{m},
+  z\in[1,10]\,\mathrm{m},
   \quad
-  \mathrm{FOV}=30^\circ,
+  \mathrm{FOV}\in\{30^\circ,60^\circ,90^\circ\},
   \quad
   D_{\mathrm{ap}}=3\,\mathrm{mm},
   \quad
@@ -965,13 +965,11 @@ Meta 分支提取物理编码特征：
 \end{equation}
 扩展扫描：
 \begin{equation}
-  z\in[1,5]\,\mathrm{m},[5,10]\,\mathrm{m},
+  D_{\mathrm{ap}}\in\{2,3,5,10\}\,\mathrm{mm},
   \quad
-  \mathrm{FOV}\in\{30^\circ,60^\circ,90^\circ\},
-  \quad
-  D_{\mathrm{ap}}\in\{2,3,5,10\}\,\mathrm{mm}.
+  d\in\{5,10,20,40\}\,\mathrm{mm}.
 \end{equation}
-若 $5$--$10\,\mathrm{m}$ 区间 CRLB 明显恶化，则不应在第一版承诺该范围内的密集高精度深度。
+若 $5$--$10\,\mathrm{m}$ 区间 CRLB 明显恶化，应在第一版中如实报告该限制，并评估增大口径、改变 $d$、增加光通量或改为距离分段任务的必要性。
 
 \subsection{PSF-level 对比实验}
 
@@ -1055,7 +1053,7 @@ Meta 分支提取物理编码特征：
 
 \subsection{滤光片角度效应限制大视场}
 
-干涉型窄带滤光片的中心波长随入射角变化，大视场边缘可能出现中心波长蓝移和透过率下降。因此第一版主 FOV 设为 $30^\circ$，并将 $60^\circ/90^\circ$ 作为扩展扫描。若滤光片角度效应导致边缘 PSF 偏离设计，需要在 forward model 中加入 $T_{\mathrm{filter}}(\lambda,\alpha)$。
+干涉型窄带滤光片的中心波长随入射角变化，大视场边缘可能出现中心波长蓝移和透过率下降。因此第一版应从 $30^\circ$ 获得稳健 baseline，同时把 $60^\circ/90^\circ$ 纳入目标扫描并显式报告边缘退化。若滤光片角度效应导致边缘 PSF 偏离设计，需要在 forward model 中加入 $T_{\mathrm{filter}}(\lambda,\alpha)$。
 
 \subsection{PSF-level Fisher 与最终任务不一致}
 
@@ -1095,13 +1093,13 @@ Meta 分支提取物理编码特征：
 阶段 & 任务 & 产出 \\
 \midrule
 \endhead
-1--2周 & 固定 Nano-3D-like 第一版参数：$\lambda_0=590\,\mathrm{nm}$、$D_{\mathrm{ap}}=3\,\mathrm{mm}$、$d=37.6\,\mathrm{mm}$、FOV $30^\circ$、深度 $0.2$--$1.2\,\mathrm{m}$。搭建单波长 PSF 仿真。 & 点源 PSF 计算代码；普通透镜/随机相位 PSF；baseline 参数表。 \\
+1--2周 & 固定第一版目标系统参数：$\lambda_0=590\,\mathrm{nm}$、$D_{\mathrm{ap}}=3\,\mathrm{mm}$、$d=37.6\,\mathrm{mm}$、FOV $30^\circ/60^\circ/90^\circ$、深度 $1$--$10\,\mathrm{m}$。搭建单波长 PSF 仿真。 & 点源 PSF 计算代码；普通透镜/随机相位 PSF；baseline 参数表。 \\
 \addlinespace
-3--4周 & 实现 PSF-level Fisher 与 nuisance-aware Fisher，参数含 $z,\alpha_x,\alpha_y,a$。 & $0.2$--$1.2\,\mathrm{m}$ CRLB map；depth-angle 混淆分析。 \\
+3--4周 & 实现 PSF-level Fisher 与 nuisance-aware Fisher，参数含 $z,\alpha_x,\alpha_y,a$。 & $1$--$10\,\mathrm{m}$ CRLB map；depth-angle 混淆分析。 \\
 \addlinespace
 5--6周 & 优化低维相位，比较 DH-PSF、rotating PSF 和 Fisher phase；扫描 $D_{\mathrm{ap}}$ 和 $d$。 & 信息最优相位初版；PSF 对比图；口径/距离 feasibility map。 \\
 \addlinespace
-7--9周 & 接入 Hypersim，按 $0.2$--$1.2\,\mathrm{m}$ 或 $0.5$--$5\,\mathrm{m}$ 深度范围生成 RGB-D 编码图。 & 分层 PSF rendering 管线；Hypersim 编码图数据集。 \\
+7--9周 & 接入 RGB-D 数据集，按 $1$--$10\,\mathrm{m}$ 深度范围生成编码图，并统计各数据集有效深度覆盖率。 & 分层 PSF rendering 管线；编码图数据集。 \\
 \addlinespace
 10--12周 & 做 image-level Fisher / patch Fisher 分析。 & 图像级可辨性结果；和 PSF-level 指标对比。 \\
 \addlinespace

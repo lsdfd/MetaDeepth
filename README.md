@@ -15,8 +15,8 @@ GitHub 仓库：[lsdfd/MetaDeepth](https://github.com/lsdfd/MetaDeepth)
 ```text
 .
 ├── docs/                 # 中文推导、研究计划、实验记录
-├── 参考文献/              # 论文 PDF
-├── 翻译参考文献/          # 翻译后的论文资料
+├── references/           # 论文 PDF
+├── translated_references/ # 翻译后的论文资料
 ├── configs/              # 实验参数配置
 ├── data/
 │   ├── raw/              # 原始数据集
@@ -89,6 +89,22 @@ torchvision
 
 后续真实 meta-atom / RCWA 建库会单独加入 `torcwa` 或其他 RCWA 工具，不放在第一版必装依赖里。
 
+## 可参考的开源项目
+
+当前项目仍以本文档和 `docs/` 中的物理推导为准，下面项目只作为实现参考，不直接照搬实验路线：
+
+```text
+DFlat:
+  https://github.com/DeanHazineh/DFlat
+  可参考其 differentiable flat optics / metasurface imaging 的模块边界、传播和端到端优化写法。
+  我们第一阶段只借鉴 PSF/传播组织方式，不先做端到端任务优化。
+
+DepthFromDefocusWithLearnedOptics:
+  https://github.com/computational-imaging/DepthFromDefocusWithLearnedOptics
+  和“相位编码光学 + 单幅深度估计”背景接近，可参考其 PSF、coded aperture、RGB-D forward
+  和深度网络连接方式。当前不进入训练阶段。
+```
+
 ## 当前第一步
 
 当前第一步是跑通一个点源 PSF sanity check：
@@ -124,29 +140,95 @@ outputs/psf_figures/random_phase_psf_grid.png
 4. 不同视场角下 PSF 是否变化。
 ```
 
-## 第一版 baseline 参数
+## 第一阶段正式系统参数
 
 见：
 
 ```text
-configs/baseline.yaml
+configs/system_first_stage.yaml
 ```
 
-当前默认参数：
+当前参数不是 Nano-3D 对齐值，而是本项目自己的长距离、大视场深度感知目标：
 
 ```text
 中心波长：590 nm
 带宽：10 nm
-超表面口径：3 mm
-口径扫描候选：3/5/10 mm
-超表面-CMOS距离：37.6 mm
-距离扫描候选：5/10/20/40 mm
-主视场：30 deg
-扩展视场扫描：30/60/90 deg
-主深度范围：1-10 m
-pupil grid：1024 x 1024
-debug pupil grid：512 x 512
+FOV 扫描：30/60/90 deg
+目标距离范围：1-10 m
+目标距离采样：1/2/3/5/7/10 m
+超表面口径扫描：3/5/10 mm
+超表面-CMOS距离扫描：3/5/10/15 mm
+CMOS：5472 x 3648，2.4 um pixel pitch
+pupil grid main/debug：1024 / 512
 PSF grid：128 x 128
 ```
 
-这些参数用于先建立单波长、点源级 PSF 仿真链路。第一阶段只验证透镜相位和随机相位的 PSF 行为，不进入 Fisher 优化、RGB-D forward 或神经网络训练。
+`configs/baseline.yaml` 只保留为早期脚手架兼容文件，后续第一阶段实验默认以
+`configs/system_first_stage.yaml` 为准。
+
+## 数据集位置
+
+第一阶段点源 PSF sanity check 不需要 RGB-D 数据集。后续做 RGB-D forward、
+图像级验证和深度网络训练时，当前只采用两个数据源：
+
+手动下载后放到：
+
+```text
+data/raw/hm3d/
+data/raw/hypersim/
+```
+
+数据配置见：
+
+```text
+configs/datasets.yaml
+docs/dataset_plan.md
+```
+
+查看第一阶段系统扫描表：
+
+```bash
+conda activate metasurface-depth
+python scripts/00_print_system_sweep.py
+```
+
+当前计划使用：
+
+```text
+HM3D + Habitat：主数据源，1000 个真实 3D 场景，约 130 GB Habitat 场景包；
+                 用 Habitat 渲染非连续 RGB-D 视角，可显式控制 FoV=30/60/90 deg。
+Hypersim：补充数据源，461 个室内场景，公开 74619 张图，完整图像数据约 1.9 TB；
+          提供 dense metric depth、相机参数和 scene split。
+深度有效范围：优先筛 1-10 m
+目标 FOV：30/60/90 deg
+```
+
+不再把 TartanAir / TartanGround / DIODE / NYU / KITTI 作为当前主数据路线；
+它们只保留为历史调研背景，不进入本阶段数据方案。
+
+本地先不拉完整数据集。第一批只准备约 100 张 Hypersim RGB-D pilot：
+
+```text
+data/raw/hypersim_pilot_100/
+data/processed/hypersim_pilot_100/
+```
+
+用途：
+
+```text
+读取 RGB/depth；
+检查 1-10 m depth mask；
+做 RGB-D -> CMOS forward smoke test；
+不作为训练集或泛化验证集。
+```
+
+旧 scaffold 参数曾包含：
+
+```text
+超表面口径默认：3 mm
+口径扫描候选：3/5/10 mm
+超表面-CMOS距离候选：37.6 mm
+```
+
+这些旧值不作为后续实验默认依据。第一阶段只验证透镜相位和随机相位的 PSF 行为，
+不进入 Fisher 优化、RGB-D forward 或神经网络训练。

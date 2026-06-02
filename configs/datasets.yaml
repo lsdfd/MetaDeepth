@@ -1,0 +1,100 @@
+datasets:
+  hm3d_habitat:
+    role: primary_renderable_rgbd_training_corpus
+    homepage: https://aihabitat.org/datasets/hm3d/
+    habitat_download_docs: https://github.com/facebookresearch/habitat-sim/blob/main/DATASETS.md
+    access: academic_non_commercial_with_matterport_api_token
+    raw_root: data/raw/hm3d
+    processed_root: data/processed/hm3d
+    rendered_root: data/processed/hm3d_rendered_rgbd
+    approximate_habitat_scene_archive_size_gb: 130
+    scene_count_total: 1000
+    split_notes:
+      train_scenes: 800
+      val_scenes: 100
+      test_scenes: 100
+      test_release: held_out
+    data_type: textured_3d_scene_scans
+    expected_generated_modalities: [rgb, depth_m, camera_intrinsics, camera_pose, scene_id]
+    ecosystem: [Habitat-Sim, Habitat-Lab, HM3D, HM3D-Semantics]
+    why_primary:
+      - Many scene-level building scans, so train/val can split by scene.
+      - RGB-D can be rendered from random non-contiguous camera viewpoints.
+      - Camera FOV can be explicitly set to 30/60/90 deg for this project.
+      - Metric depth can be masked to the project range 1-10 m.
+    project_render_policy:
+      fov_deg: [30.0, 60.0, 90.0]
+      target_depth_range_m: [1.0, 10.0]
+      image_size: [512, 512]
+      sampling: random_non_contiguous_viewpoints
+      split_unit: scene
+    first_download_target:
+      split: minival
+      purpose: verify Habitat install, RGB-D rendering, FOV control, and 1-10 m depth masking
+
+  hypersim:
+    role: secondary_dense_indoor_rgbd_training_corpus
+    homepage: https://github.com/apple/ml-hypersim
+    access: public_download_scripts
+    license: CC-BY-SA-3.0
+    raw_root: data/raw/hypersim
+    processed_root: data/processed/hypersim
+    approximate_image_dataset_size_tb: 1.9
+    scene_count: 461
+    rendered_image_count_original: 77400
+    rendered_image_count_public: 74619
+    data_type: photorealistic_synthetic_indoor_rgbd
+    expected_modalities:
+      - tone_mapped_rgb
+      - depth_meters
+      - camera_intrinsics
+      - camera_pose
+      - semantic_labels
+    depth_definition: euclidean_distance_to_camera_center_meters
+    ecosystem: [official_download_scripts, official_metadata, scene_split, ICCV_2021]
+    why_secondary:
+      - Dense metric depth and complete camera metadata.
+      - Scene-level train/val/test split is available.
+      - Large enough for depth learning, but indoor synthetic only.
+    project_usage:
+      target_depth_range_m: [1.0, 10.0]
+      split_unit: scene
+      note: Use as dense indoor supplement; HM3D/Habitat remains primary because FOV can be controlled directly.
+    pilot_subset:
+      role: first_local_rgbd_smoke_test
+      target_image_count: 100
+      storage_budget_gb: 3
+      source: official_hypersim_subset_download_from_zip_members
+      pilot_mirror_repository: https://huggingface.co/datasets/ritianyu/Hypersim
+      scene_policy: sample_multiple_scenes_before_many_frames_per_scene
+      suggested_sampling:
+        scenes: 10
+        frames_per_scene: 10
+      required_modalities:
+        - final_preview_tonemapped_rgb
+        - depth_meters
+        - camera_metadata
+      verified_format:
+        image_size: [1024, 768]
+        rgb_file: frame.*.tonemap.jpg
+        depth_file: frame.*.depth_meters.hdf5
+        camera_parameters_file: metadata_camera_parameters.csv
+        settings_camera_fov_rad: 1.0471975803375244
+        approximate_horizontal_fov_deg: 60.0
+        approximate_vertical_fov_deg: 46.8
+        note: Pilot is good for 30/60 deg smoke tests; 90 deg should come from HM3D/Habitat rendering.
+      local_root: data/raw/hypersim_pilot_100
+      processed_root: data/processed/hypersim_pilot_100
+      download_script: scripts/02_download_hypersim_pilot_100.py
+      notes:
+        - Use this only for reader, mask, visualization, and RGB-D forward smoke tests.
+        - Do not use this 100-image pilot as a training or generalization benchmark.
+        - Prefer downloading individual files from scene ZIP archives instead of full 1-20 GB ZIP chunks.
+
+selection_notes:
+  active_datasets_only: [hm3d_habitat, hypersim]
+  excluded_for_now: [tartanair, tartanground, diode, nyu_depth_v2, kitti, scannet]
+  first_stage: Dataset files are not needed for point-source PSF sanity checks.
+  later_rgbd_forward: Use HM3D-rendered RGB-D first because it gives direct control over FOV 30/60/90.
+  pilot_before_full_download: Start with Hypersim pilot 100 images; do not download full HM3D or Hypersim archives for initial tests.
+  depth_values: Downstream preprocessing should keep only valid depth values in 1-10 m for this project.

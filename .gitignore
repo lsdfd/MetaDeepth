@@ -18,10 +18,16 @@ outputs/**/*.npy
 outputs/**/*.npz
 outputs/**/*.h5
 outputs/**/*.hdf5
+outputs/.matplotlib/
 data/raw/*
 data/processed/*
 data/psf_cache/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/psf_cache/.gitkeep
-
+!data/raw/*/
+!data/processed/*/
+!data/psf_cache/*/
+!data/raw/**/.gitkeep
+!data/processed/**/.gitkeep
+!data/psf_cache/**/.gitkeep

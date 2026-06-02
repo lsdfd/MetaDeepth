@@ -1,0 +1,702 @@
+[
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_001",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_001/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_001/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_002",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_002/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_002/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_003",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_003/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_003/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_004",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_004/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_004/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_005",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_005/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_005/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_006",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_006/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_006/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_007",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_007/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_008",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_008/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_008/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_009",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_009/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_009/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0000",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0000.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0000.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0001",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0002",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0002.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0002.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0003",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0003.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0003.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0004",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0004.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0004.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0005",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0005.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0005.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0006",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0007",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0007.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0007.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0008",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0008.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0008.depth_meters.hdf5"
+  },
+  {
+    "scene": "ai_001_010",
+    "camera": "scene_cam_00",
+    "frame_id": "0009",
+    "rgb": "ai_001_010/images/scene_cam_00_final_preview/frame.0009.tonemap.jpg",
+    "depth_meters": "ai_001_010/images/scene_cam_00_geometry_hdf5/frame.0009.depth_meters.hdf5"
+  }
+]

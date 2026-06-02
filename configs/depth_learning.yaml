@@ -1,0 +1,26 @@
+project:
+  name: metasurface_depth_learning_scaffold
+  stage: depth_reconstruction_scaffold
+
+model:
+  input_mode: rgb_meta
+  min_depth_m: 1.0
+  max_depth_m: 10.0
+  width: 16
+
+data:
+  dataset: synthetic
+  image_size: 96
+  train_length: 8
+  val_length: 4
+  batch_size: 2
+
+train:
+  epochs: 1
+  learning_rate: 0.001
+  loss: l1_silog
+  device: cpu
+  seed: 0
+
+outputs:
+  run_dir: outputs/depth_learning/smoke
