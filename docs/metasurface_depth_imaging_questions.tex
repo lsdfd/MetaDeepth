@@ -1,0 +1,948 @@
+\documentclass[11pt,a4paper,fontset=none]{ctexart}
+
+\usepackage[margin=2.25cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{caption}
+
+\setCJKmainfont{Songti SC}
+\setCJKsansfont{Songti SC}
+\setCJKmonofont{Songti SC}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\setlist[itemize]{leftmargin=1.7em}
+\setlist[enumerate]{leftmargin=1.9em}
+
+\title{\bfseries 超表面深度成像项目十个关键问题梳理\\
+\large 从 RGB-D 仿真、PSF 计算、Fisher 信息到器件与实验路线}
+\author{项目讨论整理}
+\date{2026年6月}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{先把整个问题重新放到一条链路里}
+
+目前最容易混乱的原因，是这个项目同时跨了四层东西：
+\begin{enumerate}
+  \item 真实世界光场如何进入光学系统；
+  \item 超表面如何把不同深度、角度、波长、偏振的入射光编码成传感器图像；
+  \item 如何用 Fisher information、CRLB 或互信息评价这个编码是否对深度有用；
+  \item 如何用 RGB-D 数据集、深度网络和真实标定把理论链路落地。
+\end{enumerate}
+
+这四层不能混成一句 ``RGB-D 经过 PSF 卷积生成编码图''。更准确的说法应该是：
+\begin{quote}
+真实自然场景经过超表面相机形成 CMOS 图像，是一个高维、宽谱、空间变化、非相干辐射传输问题。开源 RGB-D 数据集没有完整光场、反射谱、偏振和相干信息，因此仿真阶段通常采用非相干、分层、空间变化 PSF 的一阶近似。这个近似不是严格真实物理，但它是 Deep Optics、Depth from Defocus with Learned Optics、PhaseCam3D、极端色散金属透镜深度成像等工作常用的可执行路线。
+\end{quote}
+
+因此，第一版项目不应该声称 ``RGB-D 完整模拟真实光场''，而应声称：
+\begin{quote}
+RGB-D layered PSF rendering 用于比较不同光学编码设计的相对优劣；最终可信度需要依赖真实 PSF/MTF/forward operator 标定与少量实拍校正。
+\end{quote}
+
+下面按照你提出的 10 个问题逐条回答。
+
+\section{问题一：RGB 图和深度图如何近似进入超表面的光场}
+
+\subsection{真实物理过程是什么}
+
+真实场景中，每个三维点 $\bm P$ 会向相机方向发出或反射一部分光。到达超表面入瞳面的光可以写成空间、方向、波长、偏振相关的辐亮度：
+\begin{equation}
+  L(\bm r, \bm \omega, \lambda, p),
+\end{equation}
+其中 $\bm r$ 是空间位置，$\bm \omega$ 是方向，$\lambda$ 是波长，$p$ 是偏振态。理想情况下，光学系统把这个高维光场映射到传感器强度：
+\begin{equation}
+  I_{\mathrm{sensor}}(u,v)
+  =
+  \sum_p
+  \int_\lambda
+  \int_{\Omega}
+  \mathcal T(u,v;\bm r,\bm \omega,\lambda,p)
+  L(\bm r,\bm \omega,\lambda,p)
+  d\bm\omega d\lambda
+  + n(u,v),
+\end{equation}
+其中 $\mathcal T$ 是由镜头、超表面、滤光片、传感器共同决定的传输算子，$n$ 是噪声。
+
+这个式子才是更完整的物理图像。但普通 RGB-D 数据集只给我们：
+\begin{equation}
+  I_{\mathrm{rgb}}(x,y),\quad D(x,y),
+\end{equation}
+也就是一个相机视角下的 RGB 强度图和每个像素的深度。它没有告诉我们完整光场，也没有告诉我们每个表面的真实光谱反射率、偏振态、BRDF、多路径、透明折射和镜面高光。所以我们必须近似。
+
+\subsection{常用近似：非相干分层 PSF 渲染}
+
+自然光下，普通漫反射场景通常可近似为非相干成像。非相干成像的核心性质是：传感器强度近似等于场景强度和强度 PSF 的卷积，而不是复振幅相干叠加。因此，如果场景中不同深度层之间相互遮挡已经由原 RGB-D 图给出，我们可以把图像按照深度切成 $K$ 个软层：
+\begin{equation}
+  M_k(x,y)
+  =
+  w_k(D(x,y)),
+  \quad k=1,\ldots,K,
+\end{equation}
+其中 $w_k$ 是围绕深度 $z_k$ 的软分配函数，例如高斯或 triangular bin。
+
+每一层的颜色强度为：
+\begin{equation}
+  I_k^c(x,y)=M_k(x,y) I_{\mathrm{rgb}}^c(x,y),
+\end{equation}
+其中 $c\in\{R,G,B\}$。若先忽略空间变化 PSF，则编码图可以近似为：
+\begin{equation}
+  I_{\mathrm{meta}}^c
+  =
+  \sum_{k=1}^{K}
+  h^c(z_k;\phi)
+  *
+  I_k^c
+  +
+  n^c,
+  \label{eq:layered_simple}
+\end{equation}
+其中 $h^c(z_k;\phi)$ 是给定深度 $z_k$、颜色通道 $c$ 和超表面设计 $\phi$ 时的强度 PSF。
+
+若考虑大视场，PSF 还依赖像素位置或主光线角度 $\alpha(x,y)$：
+\begin{equation}
+  I_{\mathrm{meta}}^c(u,v)
+  =
+  \sum_{k=1}^{K}
+  \sum_{x,y}
+  h^c(u,v;x,y,z_k,\alpha(x,y);\phi)
+  M_k(x,y) I_{\mathrm{rgb}}^c(x,y)
+  +
+  n^c(u,v).
+  \label{eq:space_variant}
+\end{equation}
+这就是空间变化成像算子，不再是一个简单全局卷积。
+
+\subsection{加入 CMOS 传感器}
+
+进入 CMOS 之前还要考虑 sensor sampling、颜色滤波阵列、曝光、量化和噪声。更完整的离散形式是：
+\begin{equation}
+  \bm y
+  =
+  Q\left[
+  \mathcal B
+  \left(
+  t_{\mathrm{exp}}
+  \int_\lambda
+  S(\lambda)
+  \mathcal H_\phi(\lambda)
+  [\bm X(\lambda),\bm D]
+  d\lambda
+  \right)
+  +\bm n_{\mathrm{shot}}
+  +\bm n_{\mathrm{read}}
+  \right],
+  \label{eq:sensor_model}
+\end{equation}
+其中：
+\begin{itemize}
+  \item $\mathcal H_\phi(\lambda)$ 是由超表面决定的空间变化成像算子；
+  \item $S(\lambda)$ 包含滤光片、透镜透过率、CMOS 量子效率；
+  \item $\mathcal B$ 表示 Bayer CFA 或 RGB 通道采样；
+  \item $Q$ 表示模数转换和量化；
+  \item $n_{\mathrm{shot}}$ 是泊松光子噪声，$n_{\mathrm{read}}$ 是读出噪声。
+\end{itemize}
+
+实际第一版可以简化为：
+\begin{equation}
+  y_i \sim \mathrm{Poisson}(\mu_i)+\mathcal N(0,\sigma_r^2),
+\end{equation}
+或者在光强足够时用高斯近似：
+\begin{equation}
+  \bm y=\bm \mu+\bm n,\quad \bm n\sim\mathcal N(0,\bm\Sigma).
+\end{equation}
+
+\subsection{这个近似准吗}
+
+它不是完整真实物理，但在以下条件下是合理的一阶近似：
+\begin{itemize}
+  \item 自然光非相干；
+  \item 大部分表面近似漫反射；
+  \item 不强调透明体、镜面强反射、多路径和体散射；
+  \item 目的是比较不同编码器的相对优劣；
+  \item 最终会用真实 PSF 标定或真实数据校正。
+\end{itemize}
+
+它不适合严格模拟以下现象：
+\begin{itemize}
+  \item 透明玻璃、强镜面、金属高光；
+  \item 偏振敏感材质；
+  \item 宽谱反射率未知导致的颜色/深度混淆；
+  \item 大景深下遮挡边界的真实散焦前后遮挡关系；
+  \item 完整光场中的视差和多视角效应。
+\end{itemize}
+
+\subsection{参考文献中是否也是这样做}
+
+是的，很多计算光学深度工作都采用类似思路：
+\begin{itemize}
+  \item Deep Optics / Depth from Defocus with Learned Optics 使用 RGB-D 或双像素数据，通过 depth-dependent PSF 渲染 coded image，再训练网络恢复深度；
+  \item PhaseCam3D 使用 RGB-D/SceneFlow 类数据和学习相位 mask，通过深度相关 PSF 生成编码图，并讨论 CRLB/Fisher 相关指标；
+  \item 3D Imaging Using Extreme Dispersion in Optical Metasurfaces 使用 SceneFlow 的 RGB 和 disparity/depth，通过分层卷积生成金属透镜编码图；
+  \item 宽视场 metalens 计算成像工作常使用 spatially varying PSF 或 eigenPSF 表示，再用 deconvolution 或神经网络恢复图像。
+\end{itemize}
+
+所以这条路是有前例的，但必须在论文中清楚写出近似边界，不能把它包装成完整真实光场仿真。
+
+\section{问题二：不同深度和角度的 PSF 如何理论计算}
+
+\subsection{从点源到入瞳面波前}
+
+考虑一个三维点源，位于相机坐标系中：
+\begin{equation}
+  \bm P=(X_0,Y_0,Z_0).
+\end{equation}
+超表面所在平面取 $z=0$，其孔径坐标为 $(x,y)$。点源到孔径点的距离为：
+\begin{equation}
+  R(x,y)
+  =
+  \sqrt{(x-X_0)^2+(y-Y_0)^2+Z_0^2}.
+\end{equation}
+若波长为 $\lambda$，波数 $k=2\pi/\lambda$，入射到超表面前的复振幅可写为：
+\begin{equation}
+  U_{\mathrm{in}}(x,y)
+  =
+  A(x,y)
+  \frac{\exp\left(ikR(x,y)\right)}{R(x,y)}.
+\end{equation}
+
+在远场或小孔径近似下，点源方向由视场角 $(\alpha_x,\alpha_y)$ 表示，深度引起的曲率可以写成：
+\begin{equation}
+  U_{\mathrm{in}}(x,y;z,\alpha_x,\alpha_y,\lambda)
+  \approx
+  A(x,y)
+  \exp\left[
+  ik
+  \left(
+  x\sin\alpha_x
+  +y\sin\alpha_y
+  +\frac{x^2+y^2}{2z}
+  \right)
+  \right].
+  \label{eq:incident_wave}
+\end{equation}
+其中线性项对应入射角，二次项对应有限距离波前曲率。长距离时，二次项非常弱，这正是远距离深度难测的物理原因。
+
+\subsection{超表面透射函数}
+
+若先用标量相位模型，超表面透射函数为：
+\begin{equation}
+  t_\phi(x,y,\lambda)
+  =
+  A_\phi(x,y,\lambda)
+  \exp\left[i\phi(x,y,\lambda)\right].
+\end{equation}
+经过超表面后的场为：
+\begin{equation}
+  U_0(x,y)
+  =
+  P(x,y)
+  t_\phi(x,y,\lambda)
+  U_{\mathrm{in}}(x,y),
+  \label{eq:after_meta}
+\end{equation}
+其中 $P(x,y)$ 是孔径函数。
+
+如果要体现真正超表面，$t_\phi$ 不应只是一个相位函数，而应来自 meta-atom 响应：
+\begin{equation}
+  t(x,y,\lambda,\alpha,p)
+  =
+  A(g(x,y),\lambda,\alpha,p)
+  \exp[i\phi(g(x,y),\lambda,\alpha,p)],
+\end{equation}
+其中 $g(x,y)$ 表示该位置 meta-atom 的几何参数，例如宽度、长度、高度、旋转角。
+
+\subsection{传播到 CMOS：Fresnel 传播}
+
+设超表面到传感器距离为 $d$。用 Fresnel 近似，传感器平面复振幅为：
+\begin{equation}
+  U_d(u,v)
+  =
+  \frac{e^{ikd}}{i\lambda d}
+  \iint
+  U_0(x,y)
+  \exp\left[
+  i\frac{k}{2d}
+  \left((u-x)^2+(v-y)^2\right)
+  \right]
+  dxdy.
+  \label{eq:fresnel}
+\end{equation}
+对应强度 PSF 为：
+\begin{equation}
+  h(u,v;z,\alpha_x,\alpha_y,\lambda,\phi)
+  =
+  |U_d(u,v)|^2.
+\end{equation}
+通常还要归一化：
+\begin{equation}
+  \sum_{u,v}h(u,v;z,\alpha,\lambda,\phi)=\eta(z,\alpha,\lambda),
+\end{equation}
+其中 $\eta$ 表示总透过效率。
+
+\subsection{Fraunhofer / Fourier 形式}
+
+如果传感器位于透镜焦平面附近，或者系统可等效为 pupil-to-focal-plane Fourier transform，则 PSF 可以写成：
+\begin{equation}
+  h(u,v)
+  =
+  \left|
+  \mathcal F
+  \left\{
+  P(x,y)
+  \exp[i\Phi_{\mathrm{total}}(x,y)]
+  \right\}
+  \right|^2,
+  \label{eq:fourier_psf}
+\end{equation}
+其中总相位包含：
+\begin{equation}
+  \Phi_{\mathrm{total}}
+  =
+  \phi_{\mathrm{meta}}(x,y,\lambda)
+  +
+  \phi_{\mathrm{lens}}(x,y,\lambda)
+  +
+  k(x\sin\alpha_x+y\sin\alpha_y)
+  +
+  k\frac{x^2+y^2}{2z}
+  +
+  \phi_{\mathrm{aberr}}(x,y,\alpha,\lambda).
+\end{equation}
+这个形式适合快速仿真和优化。
+
+\subsection{矢量超表面形式}
+
+真正的超表面可能对偏振有耦合。此时透射不再是标量，而是 Jones 矩阵：
+\begin{equation}
+  \bm J(x,y,\lambda,\alpha)
+  =
+  \begin{bmatrix}
+  t_{xx} & t_{xy}\\
+  t_{yx} & t_{yy}
+  \end{bmatrix}.
+\end{equation}
+输入电场为 $\bm E_{\mathrm{in}}=[E_x,E_y]^T$，输出为：
+\begin{equation}
+  \bm E_0(x,y)=\bm J(x,y,\lambda,\alpha)\bm E_{\mathrm{in}}(x,y).
+\end{equation}
+然后 $E_x,E_y$ 分别传播到传感器，强度为：
+\begin{equation}
+  h(u,v)=|E_x(u,v)|^2+|E_y(u,v)|^2,
+\end{equation}
+若传感器或偏振片选择某一偏振，则还要乘相应分析矩阵。
+
+\subsection{实际计算时能否用 RCWA}
+
+可以，但要分层使用。
+
+RCWA 适合计算单个周期性 meta-atom 在不同波长、入射角、偏振下的复透射：
+\begin{equation}
+  g=(w,l,h,\theta)
+  \mapsto
+  \bm J_g(\lambda,\alpha).
+\end{equation}
+然后建立一个 meta-atom library：
+\begin{equation}
+  \mathcal L=\{g_m,\ A_m(\lambda,\alpha,p),\ \phi_m(\lambda,\alpha,p)\}_{m=1}^{M}.
+\end{equation}
+
+但 RCWA 直接仿真整个毫米级甚至厘米级超表面几乎不可行，因为周期数太多。实际常用路线是：
+\begin{enumerate}
+  \item 用 RCWA/FDTD 仿真局部周期单元，得到 meta-atom library；
+  \item 用局部周期近似 LPA，把每个位置映射到一个 meta-atom；
+  \item 得到整个孔径的复透射函数 $t(x,y,\lambda,\alpha,p)$；
+  \item 用 Fourier optics / Fresnel propagation 计算系统 PSF；
+  \item 对关键区域或小尺寸样片用全波仿真校验 LPA 误差。
+\end{enumerate}
+
+所以回答是：RCWA 很重要，但它主要用于 meta-atom 层；系统级 PSF 计算通常靠 Fourier optics、角谱法或光线-波动混合模型。
+
+\section{问题三：Fisher 是什么，为什么不能只对 PSF 做 Fisher}
+
+\subsection{Fisher information 的定义}
+
+如果观测 $\bm y$ 的概率分布为 $p(\bm y|\theta)$，参数为 $\theta$，Fisher information 定义为：
+\begin{equation}
+  \mathcal I(\theta)
+  =
+  \mathbb E_{\bm y|\theta}
+  \left[
+  \left(
+  \frac{\partial}{\partial\theta}
+  \log p(\bm y|\theta)
+  \right)^2
+  \right].
+\end{equation}
+多参数情形为：
+\begin{equation}
+  F_{ij}
+  =
+  \mathbb E
+  \left[
+  \frac{\partial \log p(\bm y|\bm\theta)}{\partial \theta_i}
+  \frac{\partial \log p(\bm y|\bm\theta)}{\partial \theta_j}
+  \right].
+\end{equation}
+
+如果噪声是高斯：
+\begin{equation}
+  \bm y\sim\mathcal N(\bm\mu(\bm\theta),\bm\Sigma),
+\end{equation}
+且协方差不依赖参数，则：
+\begin{equation}
+  \bm F
+  =
+  \bm J^T\bm\Sigma^{-1}\bm J,
+  \quad
+  \bm J=\frac{\partial \bm\mu}{\partial \bm\theta}.
+\end{equation}
+
+如果是泊松噪声：
+\begin{equation}
+  y_i\sim\mathrm{Poisson}(\mu_i(\bm\theta)),
+\end{equation}
+则：
+\begin{equation}
+  F_{ij}
+  =
+  \sum_m
+  \frac{1}{\mu_m}
+  \frac{\partial\mu_m}{\partial\theta_i}
+  \frac{\partial\mu_m}{\partial\theta_j}.
+\end{equation}
+
+\subsection{PSF 级 Fisher}
+
+PSF 级 Fisher 把一个点源的传感器响应当成观测：
+\begin{equation}
+  \bm y=\bm h(z,\alpha,\lambda;\phi)+\bm n.
+\end{equation}
+如果只估计深度：
+\begin{equation}
+  \mathcal I_z^{\mathrm{psf}}
+  =
+  \left(
+  \frac{\partial \bm h}{\partial z}
+  \right)^T
+  \bm\Sigma^{-1}
+  \left(
+  \frac{\partial \bm h}{\partial z}
+  \right).
+\end{equation}
+这衡量 ``单个点目标的 PSF 随深度变化是否明显''。
+
+如果同时考虑深度、角度、亮度、波长等参数：
+\begin{equation}
+  \bm\theta=[z,\alpha_x,\alpha_y,a,\lambda]^T.
+\end{equation}
+此时真正关心的不是 $F_{zz}$，而是扣除 nuisance 混淆后的有效深度信息：
+\begin{equation}
+  \mathcal I_z^{\mathrm{eff}}
+  =
+  F_{zz}-\bm F_{z\eta}\bm F_{\eta\eta}^{-1}\bm F_{\eta z}.
+\end{equation}
+
+\subsection{为什么 PSF 级 Fisher 不够}
+
+你这个怀疑完全正确。PSF 随深度变化明显，不等于整张自然图像中的深度可恢复。原因包括：
+\begin{itemize}
+  \item 自然图像不是孤立点源，而是纹理、边界、遮挡和多个深度层的叠加；
+  \item 某些深度变化只在高频纹理上可见，低纹理区域仍然不可分；
+  \item PSF 变化可能主要表现为模糊，但模糊也可能来自运动、曝光、材质和噪声；
+  \item 宽视场下角度变化可能和深度变化混淆；
+  \item 多个深度层卷积后可能互相抵消或遮挡。
+\end{itemize}
+
+因此应该分三级：
+\begin{enumerate}
+  \item PSF 级 Fisher：验证物理编码器有没有局部深度敏感性；
+  \item 层状场景 Fisher：对多个深度层、局部纹理 patch 计算观测图像的 Fisher；
+  \item 图像级/任务级 Fisher 或互信息：直接衡量整张编码图对深度图的有效信息。
+\end{enumerate}
+
+\subsection{图像级 Fisher 如何写}
+
+设 RGB-D 场景为 $\bm X,\bm D$，经过编码器后传感器均值为：
+\begin{equation}
+  \bm\mu_\phi=\mathcal H_\phi(\bm X,\bm D).
+\end{equation}
+如果把某个像素或某个深度参数 $D_j$ 作为待估参数，高斯噪声下：
+\begin{equation}
+  F_{ij}^{\mathrm{img}}
+  =
+  \left(
+  \frac{\partial \bm\mu_\phi}{\partial D_i}
+  \right)^T
+  \bm\Sigma^{-1}
+  \left(
+  \frac{\partial \bm\mu_\phi}{\partial D_j}
+  \right).
+\end{equation}
+完整 Fisher matrix 的维度等于像素数，极其巨大。实际不能直接完整求逆。可行近似包括：
+\begin{itemize}
+  \item patch-level Fisher：每次只对局部 patch 的几个深度参数计算；
+  \item random projection / Hutchinson trace estimator：估计 $\mathrm{Tr}(F)$ 或 $\mathrm{Tr}(F^{-1})$；
+  \item 只对低维深度参数计算，例如平面深度、局部尺度、远距离 bin；
+  \item 用互信息下界或对比学习替代直接 Fisher；
+  \item 直接用端到端 depth loss 作为任务级指标。
+\end{itemize}
+
+\subsection{相关工作是否已有}
+
+已有工作确实使用 Fisher/CRLB 分析或优化相位 mask、PSF 和深度估计。PhaseCam3D 是最相关之一，它使用 learned phase masks、PSF 仿真和深度网络，并讨论 Fisher/CRLB 对深度相关 PSF 的指导作用。Depth from Defocus with Learned Optics、Deep Optics 系列也有类似 ``学习光学编码 + 深度网络'' 的思想。
+
+但你的潜在区别不应是 ``第一次把 Fisher 用到相位 mask''，而应是：
+\begin{quote}
+把 Fisher/CRLB 从中心视场或简单深度 PSF 扩展到长距离、大视场、宽谱、角度/光谱/亮度 nuisance-aware 的有效深度信息，并进一步加入图像级 Fisher/互信息和真实场景任务损失。
+\end{quote}
+
+所以不要把创新写成 ``提出 Fisher 优化 PSF''。那太危险。更稳的写法是：
+\begin{quote}
+提出面向长距离宽视场自然场景的多参数有效 Fisher 深度编码设计，并系统研究 PSF 级信息、图像级信息和最终深度任务表现之间的一致性与差异。
+\end{quote}
+
+\section{问题四：自然光自然场景下波长怎么处理}
+
+\subsection{最完整形式}
+
+自然光图像应该对波长积分：
+\begin{equation}
+  I_{\mathrm{meta}}(u,v)
+  =
+  \int_{\lambda_{\min}}^{\lambda_{\max}}
+  S_{\mathrm{illum}}(\lambda)
+  R_{\mathrm{scene}}(x,y,\lambda)
+  T_{\mathrm{optics}}(\lambda)
+  H_\phi(u,v;x,y,D,\lambda)
+  d\lambda.
+\end{equation}
+其中 $S_{\mathrm{illum}}$ 是照明光谱，$R_{\mathrm{scene}}$ 是物体反射谱，$T_{\mathrm{optics}}$ 是系统透过率。
+
+普通 RGB 图只给三个通道：
+\begin{equation}
+  I^c(x,y)=
+  \int S_c(\lambda)
+  S_{\mathrm{illum}}(\lambda)
+  R_{\mathrm{scene}}(x,y,\lambda)
+  d\lambda,
+\end{equation}
+并不能反推出完整 $R_{\mathrm{scene}}(\lambda)$。所以自然光宽谱仿真有天然不确定性。
+
+\subsection{三种可执行路线}
+
+\paragraph{路线 A：窄带滤波}
+在超表面前加入窄带滤光片，例如中心波长 $\lambda_0$、带宽 10--30 nm。此时近似：
+\begin{equation}
+  I_{\mathrm{meta}}\approx H_\phi(\lambda_0)[I,D].
+\end{equation}
+优点是仿真和硬件简单，PSF 清晰可控；缺点是光通量下降，长距离 SNR 变差，颜色信息损失。
+
+\paragraph{路线 B：RGB 三波段近似}
+把 RGB 通道当成三个宽波段，分别用代表波长 $\lambda_R,\lambda_G,\lambda_B$：
+\begin{equation}
+  I_{\mathrm{meta}}^c
+  =
+  \mathcal H_\phi(\lambda_c)[I^c,D].
+\end{equation}
+这是很多早期仿真最容易做的近似。优点是可以直接使用 RGB-D 数据；缺点是忽略通道内宽谱积分。
+
+\paragraph{路线 C：多波长采样积分}
+在每个颜色通道内采样多个波长：
+\begin{equation}
+  I_{\mathrm{meta}}^c
+  =
+  \sum_{\ell=1}^{L}
+  w_{c,\ell}
+  \mathcal H_\phi(\lambda_{c,\ell})[\tilde I_{c,\ell},D].
+\end{equation}
+由于没有真实光谱，可以先令 $\tilde I_{c,\ell}\approx I^c$ 或加入随机光谱扰动。这个方法更接近自然光，但不确定性也更大。
+
+\subsection{建议第一版怎么做}
+
+第一版建议同时做两个版本：
+\begin{enumerate}
+  \item 单波长/窄带版本：验证理论和 Fisher 优化是否成立；
+  \item RGB 三波段或多波长版本：测试自然光宽谱是否把编码冲淡。
+\end{enumerate}
+
+如果单波长下有效、多波长下失效，这不是失败，而是重要发现。它会告诉你系统必须使用滤波、窄带照明、多通道复用或色散工程。
+
+\section{问题五：整个工作本质上涉及哪些光传播数值理论}
+
+这个项目确实很大程度是 ``光传播 + 统计估计 + 学习重建'' 的数值理论计算。核心模块如下。
+
+\begin{longtable}{p{3.2cm}p{5.4cm}p{6.2cm}}
+\toprule
+模块 & 作用 & 常用方法 \\
+\midrule
+\endhead
+点源到孔径波前 & 描述深度和视场角如何进入系统 & 球面波、平面波近似、Fresnel 近似 \\
+\addlinespace
+超表面局部响应 & 由 meta-atom 几何得到相位、振幅、偏振、色散 & RCWA、FDTD、FEM、局部周期近似 \\
+\addlinespace
+孔径到传感器传播 & 由透射场计算 PSF & Fourier optics、Fresnel propagation、angular spectrum method \\
+\addlinespace
+空间变化成像 & 处理大视场下不同像素不同 PSF & spatially varying convolution、eigenPSF、patch-wise convolution \\
+\addlinespace
+宽谱积分 & 自然光、多波段、滤光片建模 & 波长采样、RGB 通道近似、光谱随机化 \\
+\addlinespace
+CMOS 模型 & 把光强转为数字图像 & shot noise、read noise、Bayer CFA、gamma/linear RAW、ADC \\
+\addlinespace
+Fisher/CRLB & 评价理论可估计性 & Gaussian/Poisson Fisher、多参数 Schur complement \\
+\addlinespace
+图像级信息 & 评价自然场景中是否有用 & patch Fisher、互信息下界、InfoNCE、task loss \\
+\addlinespace
+学习重建 & 从编码图恢复深度 & CNN/Transformer decoder、teacher distillation、uncertainty \\
+\bottomrule
+\end{longtable}
+
+因此，你可以把代码分成四个包：
+\begin{enumerate}
+  \item \texttt{optics}: PSF 和传播计算；
+  \item \texttt{render}: RGB-D 到编码图；
+  \item \texttt{info}: Fisher/CRLB/互信息指标；
+  \item \texttt{learn}: depth decoder 和训练评估。
+\end{enumerate}
+
+\section{问题六：超表面如何设计，口径、周期、尺寸和可制造性}
+
+\subsection{口径决定长距离信息上限}
+
+长距离深度的物理难点来自波前曲率变化很小。对孔径半径 $a$ 和距离 $z$，有限距离带来的孔径边缘相位量级近似为：
+\begin{equation}
+  \Delta\Phi_z
+  \sim
+  k\frac{a^2}{2z}.
+\end{equation}
+两段距离 $z$ 和 $z+\Delta z$ 的相位差约为：
+\begin{equation}
+  \Delta\Phi
+  \sim
+  k\frac{a^2}{2}
+  \left|
+  \frac{1}{z}-\frac{1}{z+\Delta z}
+  \right|
+  \approx
+  k\frac{a^2\Delta z}{2z^2}.
+\end{equation}
+这说明：
+\begin{itemize}
+  \item 深度敏感性随口径平方增加；
+  \item 随距离平方下降；
+  \item 小口径在远距离上天然非常吃亏。
+\end{itemize}
+
+所以必须先做 feasibility map：给定口径、波长、像素尺寸、曝光、FOV，理论上 20 m、50 m、100 m 能分辨多少深度差。没有这个图，不应该承诺长距离高精度。
+
+\subsection{大视场要求角度响应可控}
+
+大视场并不是 ``超表面做大一点''。大视场要求离轴入射时：
+\begin{equation}
+  t(x,y,\lambda,\alpha)
+\end{equation}
+仍然可控。普通局部相位设计在大角度下会出现：
+\begin{itemize}
+  \item 离轴像差；
+  \item 焦点漂移；
+  \item 效率下降；
+  \item 偏振串扰；
+  \item 角度和深度编码混淆。
+\end{itemize}
+
+因此超表面设计要么使用角度鲁棒 meta-atom，要么承认 PSF 是空间变化的，并把 $\alpha$ 输入到 forward model 和 decoder。
+
+\subsection{周期和采样}
+
+meta-atom 周期 $p$ 通常要小于波长量级，避免高阶衍射：
+\begin{equation}
+  p < \frac{\lambda}{n_{\mathrm{env}}(1+\sin\alpha_{\max})}
+\end{equation}
+这是粗略条件，具体与材料和结构有关。可见光下周期常在几百纳米量级。若口径为 $D_{\mathrm{ap}}$，单元数约为：
+\begin{equation}
+  N\approx \left(\frac{D_{\mathrm{ap}}}{p}\right)^2.
+\end{equation}
+例如 $D_{\mathrm{ap}}=1$ mm，$p=400$ nm，则 $N\approx6.25\times10^6$ 个单元；若 $D_{\mathrm{ap}}=1$ cm，则 $N\approx6.25\times10^8$，制造和设计压力巨大。
+
+\subsection{第一版设计建议}
+
+不要一开始直接设计厘米级全功能超表面。建议路线：
+\begin{enumerate}
+  \item 从等效 phase mask 做理论；
+  \item 加相位量化，例如 8/16/32 levels；
+  \item 加透过率约束；
+  \item 用公开或自己 RCWA 生成的小型 meta-atom library 映射；
+  \item 先考虑毫米级样片或混合光学结构；
+  \item 若要长距离，优先考虑普通镜头 + 超表面编码片，而不是单片超表面替代所有光学功能。
+\end{enumerate}
+
+\subsection{小超表面是否天生无法接受大视场}
+
+小超表面不是不能接受大视场，而是存在两个问题：
+\begin{itemize}
+  \item 小口径导致长距离深度信息和光通量不足；
+  \item 大视场下入射角范围大，meta-atom 响应更容易失效。
+\end{itemize}
+因此小超表面可以做宽视场编码演示，但若目标是长距离高精度 metric depth，必须认真评估口径、SNR 和视场角。很可能更现实的架构是：
+\begin{quote}
+普通成像镜头提供口径和基本成像能力，超表面作为 pupil-plane 或 sensor-near 编码器提供额外深度信息。
+\end{quote}
+
+\section{问题七：还有哪些没有考虑到的问题}
+
+除了你已经列出的点，还要特别注意以下问题。
+
+\subsection{线性 RAW 与普通 RGB 图像}
+
+数据集 RGB 往往经过 ISP、gamma、白平衡、压缩，而物理成像模型需要线性辐照度。若直接用 sRGB 做卷积，严格来说不物理。第一版可以接受，但要说明；更好是尽量使用 linear RGB 或对 sRGB 做 inverse gamma。
+
+\subsection{景深、对焦和平面位置}
+
+深度相关 PSF 取决于传感器位置、焦距、基准对焦距离。必须明确系统是：
+\begin{itemize}
+  \item focused at infinity；
+  \item focused at some distance；
+  \item coded aperture near pupil；
+  \item metalens directly focuses to sensor。
+\end{itemize}
+否则同一个深度 $z$ 的 PSF 没有定义。
+
+\subsection{遮挡边界}
+
+layered convolution 在深度边界处会有前景/背景混合问题。真实散焦时前景会遮挡背景光，不是简单所有层线性相加。需要使用 soft matting 或 occlusion-aware rendering，否则边界可能不准。
+
+\subsection{动态范围和曝光}
+
+超表面编码可能把光能分散到大范围 PSF，导致峰值变暗、读噪增加、动态范围不足。Fisher 目标必须考虑 photon budget，而不是只看 PSF 变化。
+
+\subsection{真实标定漂移}
+
+温度、装调、传感器 cover glass、滤光片角度、封装误差都会改变 PSF。需要把 calibration code 或 PSF library 输入网络。
+
+\subsection{评价目标}
+
+无人机不一定需要每个像素厘米级深度。可能更现实的目标是：
+\begin{itemize}
+  \item 远距离障碍物距离分段；
+  \item metric scale anchor；
+  \item 低纹理区域相对纯 RGB 的改善；
+  \item 边缘视场障碍物检测深度可靠性。
+\end{itemize}
+
+\section{问题八：虚拟数据算 Fisher 时，视野、景深、相机参数是否关键}
+
+非常关键。RGB-D 数据不是随便拿来就能进你的超表面模型。必须把数据集相机映射到你的目标相机。
+
+\subsection{需要的相机信息}
+
+至少需要：
+\begin{itemize}
+  \item 相机内参 $f_x,f_y,c_x,c_y$；
+  \item 分辨率；
+  \item FOV；
+  \item depth 定义，是 optical axis depth 还是 range depth；
+  \item depth 单位和有效范围；
+  \item RGB 是否线性；
+  \item 是否有畸变；
+  \item 是否有相机位姿，若做视频自监督。
+\end{itemize}
+
+每个像素对应的 ray direction 是：
+\begin{equation}
+  \bm r(x,y)
+  =
+  \frac{
+  K^{-1}[x,y,1]^T
+  }{
+  \|K^{-1}[x,y,1]^T\|
+  }.
+\end{equation}
+视场角 $\alpha(x,y)$ 来自这个 ray direction。
+
+\subsection{为什么必须清洗}
+
+如果数据集原始 FOV 是 60 度，而你仿真目标是 120 度，直接拉伸图像是错误的。因为每个像素对应的入射角不同，PSF 也不同。必须做：
+\begin{itemize}
+  \item 按目标相机内参重新投影；
+  \item 或只使用数据集中与目标 FOV 匹配的相机；
+  \item 或明确仿真的 FOV 就等于数据集 FOV。
+\end{itemize}
+
+\subsection{建议数据策略}
+
+第一版选择有明确内参和 dense depth 的合成数据，例如 TartanAir、Virtual KITTI、Hypersim。处理流程：
+\begin{enumerate}
+  \item 读取 RGB、depth、intrinsics；
+  \item 转成线性 RGB；
+  \item 根据 intrinsics 计算每个像素 ray angle；
+  \item 裁剪或重投影到目标 FOV；
+  \item 按目标距离范围 mask；
+  \item 再进入 PSF rendering。
+\end{enumerate}
+
+这样你的 Fisher 和训练图像才对应真实系统几何。
+
+\section{问题九：理想实验和现实实验}
+
+\subsection{理想实验}
+
+理想实验确实是：
+\begin{equation}
+  \text{真实场景}
+  \rightarrow
+  \text{超表面}
+  \rightarrow
+  \text{CMOS}
+  \rightarrow
+  \text{编码图}
+  \rightarrow
+  \text{深度重建}.
+\end{equation}
+同时用 LiDAR、ToF 或高精度双目系统提供真值深度。
+
+\subsection{现实中通常还需要什么}
+
+现实系统很可能需要：
+\begin{itemize}
+  \item 普通镜头：提供口径、聚焦和成像基础；
+  \item 超表面编码片：放在 pupil plane、image plane 附近或 sensor-near；
+  \item 窄带滤光片或多窄带滤光片：控制波长；
+  \item 偏振片：读取偏振复用通道；
+  \item 标定板和点光源：测 PSF/MTF；
+  \item 参考相机或分光器：采集 paired RGB；
+  \item LiDAR/ToF：提供 metric depth 真值；
+  \item 受控 LED/激光：在早期实验中减少自然光不确定性。
+\end{itemize}
+
+\subsection{是否用激光/LED}
+
+如果目标是被动自然光，最终应该避免主动照明。但早期验证可以用 LED 或窄带光源，因为它能先证明光学编码是否符合设计。合理路线是：
+\begin{enumerate}
+  \item 窄带 LED + 点源/标定板测 PSF；
+  \item 窄带 LED + 简单深度物体验证重建；
+  \item 室内自然光/宽带光测试；
+  \item 户外自然光测试。
+\end{enumerate}
+
+这不是退步，而是工程上降低不确定性的正常方法。
+
+\section{问题十：建议的完整技术路线}
+
+\subsection{第一阶段：物理可行性}
+
+目标：先证明长距离大视场下是否有足够深度信息。
+
+要做：
+\begin{enumerate}
+  \item 设定目标系统：波长、口径、FOV、像素尺寸、传感器距离、目标深度范围；
+  \item 实现点源 PSF 计算：$h(z,\alpha,\lambda;\phi)$；
+  \item 计算普通透镜、人工 PSF、随机相位的 CRLB；
+  \item 优化低维相位，使远距离/边缘视场 $\mathcal I_z^{\mathrm{eff}}$ 提高；
+  \item 输出 feasibility map。
+\end{enumerate}
+
+如果这一步显示 50--100 m 的 CRLB 天然很差，就及时调整目标，例如改成 5--30 m 或远距离尺度锚点。
+
+\subsection{第二阶段：RGB-D 编码图仿真}
+
+目标：验证 PSF 级优势是否转化为自然图像优势。
+
+要做：
+\begin{enumerate}
+  \item 选择 TartanAir / Virtual KITTI / Hypersim；
+  \item 清洗 intrinsics、FOV、depth 单位；
+  \item 用 layered spatially varying PSF 渲染编码图；
+  \item 比较不同相位设计下编码图的图像级 Fisher 或局部可辨性；
+  \item 训练小型 decoder。
+\end{enumerate}
+
+\subsection{第三阶段：严格消融}
+
+必须比较：
+\begin{itemize}
+  \item RGB-only；
+  \item Meta-only；
+  \item RGB+Meta；
+  \item RGB+Meta+ray angle；
+  \item random phase；
+  \item fixed DH/rotating PSF；
+  \item Fisher-only phase；
+  \item Fisher + image/task phase。
+\end{itemize}
+
+分段报告：
+\begin{itemize}
+  \item 近/中/远距离；
+  \item 中心/边缘视场；
+  \item 高纹理/低纹理；
+  \item 单波长/宽谱；
+  \item 高 SNR/低 SNR。
+\end{itemize}
+
+\subsection{第四阶段：metasurface 约束}
+
+在理论有效后，再引入：
+\begin{itemize}
+  \item phase quantization；
+  \item amplitude/efficiency；
+  \item wavelength dependence；
+  \item polarization multiplexing；
+  \item RCWA meta-atom library；
+  \item fabrication perturbation。
+\end{itemize}
+
+\subsection{第五阶段：实验原型}
+
+先从简单原型开始：
+\begin{enumerate}
+  \item SLM 或 DOE 验证相位编码；
+  \item 测 PSF library；
+  \item 用真实 PSF 替代理想 PSF 训练；
+  \item 再考虑 metasurface fabrication；
+  \item 若要户外长距离，优先考虑 hybrid lens + metasurface encoder。
+\end{enumerate}
+
+\section{最核心的结论}
+
+现在这个项目可以压缩成以下判断：
+\begin{enumerate}
+  \item RGB-D + PSF 卷积不是完整光场仿真，但它是自然光非相干条件下的合理一阶模型，且已有计算光学深度工作大量采用；
+  \item 点源 PSF 可以由球面波入射、超表面复透射和 Fresnel/Fourier 传播理论计算；
+  \item RCWA 适合做 meta-atom library，不适合直接仿真整个大口径系统；
+  \item Fisher 不能只看 PSF，必须从 PSF 级扩展到 nuisance-aware、patch/image-level 和 task-level；
+  \item 自然光波长处理是大风险，第一版应同时做窄带理想验证和宽谱退化分析；
+  \item 长距离成败首先由口径、SNR、FOV 和波长决定，必须先做 feasibility map；
+  \item 数据集必须按相机内参、FOV、depth 定义清洗，否则仿真几何不成立；
+  \item 真实实验大概率需要普通镜头、滤光片、偏振片、标定系统或受控光源，不能想象成裸超表面直接解决一切；
+  \item 最稳路线是先做等效 phase mask 的信息最优编码，再逐步加入 metasurface 的色散、偏振、角度和制造约束。
+\end{enumerate}
+
+\section*{参考方向}
+
+建议重点阅读或复查以下方向：
+\begin{itemize}
+  \item PhaseCam3D: Learning Phase Masks for Passive Single View Depth Estimation；
+  \item Depth from Defocus with Learned Optics；
+  \item Deep Optics for Monocular Depth Estimation and 3D Object Detection；
+  \item 3D Imaging Using Extreme Dispersion in Optical Metasurfaces；
+  \item Monocular metasurface camera for passive single-shot 4D imaging；
+  \item wide field-of-view metalens imaging with deep learning；
+  \item thin on-sensor nanophotonic array cameras；
+  \item RCWA / local periodic approximation based metalens design。
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,56 @@
+\contentsline {section}{\numberline {1}先把整个问题重新放到一条链路里}{3}{section.1}%
+\contentsline {section}{\numberline {2}问题一：RGB 图和深度图如何近似进入超表面的光场}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}真实物理过程是什么}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}常用近似：非相干分层 PSF 渲染}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}加入 CMOS 传感器}{4}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}这个近似准吗}{5}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}参考文献中是否也是这样做}{5}{subsection.2.5}%
+\contentsline {section}{\numberline {3}问题二：不同深度和角度的 PSF 如何理论计算}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}从点源到入瞳面波前}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}超表面透射函数}{6}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}传播到 CMOS：Fresnel 传播}{6}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Fraunhofer / Fourier 形式}{7}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}矢量超表面形式}{7}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}实际计算时能否用 RCWA}{7}{subsection.3.6}%
+\contentsline {section}{\numberline {4}问题三：Fisher 是什么，为什么不能只对 PSF 做 Fisher}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Fisher information 的定义}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}PSF 级 Fisher}{8}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}为什么 PSF 级 Fisher 不够}{8}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}图像级 Fisher 如何写}{9}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}相关工作是否已有}{9}{subsection.4.5}%
+\contentsline {section}{\numberline {5}问题四：自然光自然场景下波长怎么处理}{10}{section.5}%
+\contentsline {subsection}{\numberline {5.1}最完整形式}{10}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}三种可执行路线}{10}{subsection.5.2}%
+\contentsline {paragraph}{路线 A：窄带滤波}{10}{paragraph*.2}%
+\contentsline {paragraph}{路线 B：RGB 三波段近似}{10}{paragraph*.3}%
+\contentsline {paragraph}{路线 C：多波长采样积分}{10}{paragraph*.4}%
+\contentsline {subsection}{\numberline {5.3}建议第一版怎么做}{10}{subsection.5.3}%
+\contentsline {section}{\numberline {6}问题五：整个工作本质上涉及哪些光传播数值理论}{11}{section.6}%
+\contentsline {section}{\numberline {7}问题六：超表面如何设计，口径、周期、尺寸和可制造性}{11}{section.7}%
+\contentsline {subsection}{\numberline {7.1}口径决定长距离信息上限}{11}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}大视场要求角度响应可控}{12}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}周期和采样}{12}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}第一版设计建议}{13}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}小超表面是否天生无法接受大视场}{13}{subsection.7.5}%
+\contentsline {section}{\numberline {8}问题七：还有哪些没有考虑到的问题}{13}{section.8}%
+\contentsline {subsection}{\numberline {8.1}线性 RAW 与普通 RGB 图像}{13}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}景深、对焦和平面位置}{13}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}遮挡边界}{14}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}动态范围和曝光}{14}{subsection.8.4}%
+\contentsline {subsection}{\numberline {8.5}真实标定漂移}{14}{subsection.8.5}%
+\contentsline {subsection}{\numberline {8.6}评价目标}{14}{subsection.8.6}%
+\contentsline {section}{\numberline {9}问题八：虚拟数据算 Fisher 时，视野、景深、相机参数是否关键}{14}{section.9}%
+\contentsline {subsection}{\numberline {9.1}需要的相机信息}{14}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}为什么必须清洗}{15}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}建议数据策略}{15}{subsection.9.3}%
+\contentsline {section}{\numberline {10}问题九：理想实验和现实实验}{15}{section.10}%
+\contentsline {subsection}{\numberline {10.1}理想实验}{15}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}现实中通常还需要什么}{16}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}是否用激光/LED}{16}{subsection.10.3}%
+\contentsline {section}{\numberline {11}问题十：建议的完整技术路线}{16}{section.11}%
+\contentsline {subsection}{\numberline {11.1}第一阶段：物理可行性}{16}{subsection.11.1}%
+\contentsline {subsection}{\numberline {11.2}第二阶段：RGB-D 编码图仿真}{17}{subsection.11.2}%
+\contentsline {subsection}{\numberline {11.3}第三阶段：严格消融}{17}{subsection.11.3}%
+\contentsline {subsection}{\numberline {11.4}第四阶段：metasurface 约束}{18}{subsection.11.4}%
+\contentsline {subsection}{\numberline {11.5}第五阶段：实验原型}{18}{subsection.11.5}%
+\contentsline {section}{\numberline {12}最核心的结论}{18}{section.12}%

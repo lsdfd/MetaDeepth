@@ -1,0 +1,75 @@
+\contentsline {section}{\numberline {1}问题重新定义}{4}{section.1}%
+\contentsline {section}{\numberline {2}核心判断与研究假设}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}假设一：信息最优相位优于人工 PSF 模板}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}假设二：长距离需要优化最差距离而不是平均距离}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}假设三：宽视场必须显式建模角度混淆}{5}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}假设四：最终性能需要物理目标与学习目标联合优化}{5}{subsection.2.4}%
+\contentsline {section}{\numberline {3}与现有相关工作的逻辑关系}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}路线一：PSF 工程 + 深度网络}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}路线二：超表面/金属透镜 + 被动深度感知}{5}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}本课题与 PhaseCam3D 的关系}{6}{subsection.3.3}%
+\contentsline {section}{\numberline {4}为什么不能只优化 PSF}{6}{section.4}%
+\contentsline {subsection}{\numberline {4.1}PSF 级 Fisher 与整图 Fisher 的关系}{6}{subsection.4.1}%
+\contentsline {section}{\numberline {5}Fisher Information 与 CRLB 的物理意义}{7}{section.5}%
+\contentsline {subsection}{\numberline {5.1}包含泊松噪声的形式}{7}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}多参数 CRLB}{8}{subsection.5.2}%
+\contentsline {section}{\numberline {6}宽视场条件下的 Fisher Matrix}{8}{section.6}%
+\contentsline {section}{\numberline {7}从 PSF 最优到图像最优}{8}{section.7}%
+\contentsline {subsection}{\numberline {7.1}第一级：点源/局部 Fisher 目标}{8}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}第二级：图像级可辨性目标}{9}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}第三级：任务级端到端目标}{9}{subsection.7.3}%
+\contentsline {section}{\numberline {8}优化变量：相位分布如何参数化}{9}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Zernike 或像差基}{9}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Fourier 或分块基}{9}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}多通道复用相位}{10}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}多子超表面或多通道联合编码}{10}{subsection.8.4}%
+\contentsline {subsection}{\numberline {8.5}加入制造约束}{10}{subsection.8.5}%
+\contentsline {section}{\numberline {9}推荐总体算法}{10}{section.9}%
+\contentsline {section}{\numberline {10}超表面前端与深度基础模型后端}{11}{section.10}%
+\contentsline {subsection}{\numberline {10.1}方式一：作为 teacher}{11}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}方式二：作为特征提取器}{12}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}方式三：作为 prompt}{12}{subsection.10.3}%
+\contentsline {subsection}{\numberline {10.4}方式四：部署时蒸馏到小模型}{12}{subsection.10.4}%
+\contentsline {section}{\numberline {11}大口径与大视场的关系}{12}{section.11}%
+\contentsline {section}{\numberline {12}除了 Fisher/CRLB，还可以用哪些理论}{12}{section.12}%
+\contentsline {subsection}{\numberline {12.1}贝叶斯实验设计}{13}{subsection.12.1}%
+\contentsline {subsection}{\numberline {12.2}互信息最大化}{13}{subsection.12.2}%
+\contentsline {subsection}{\numberline {12.3}D-optimal、A-optimal 和 E-optimal 设计}{13}{subsection.12.3}%
+\contentsline {subsection}{\numberline {12.4}可观测性与条件数}{13}{subsection.12.4}%
+\contentsline {subsection}{\numberline {12.5}压缩感知与 RIP 思想}{13}{subsection.12.5}%
+\contentsline {subsection}{\numberline {12.6}最坏情况鲁棒优化}{14}{subsection.12.6}%
+\contentsline {section}{\numberline {13}推荐数据集}{14}{section.13}%
+\contentsline {section}{\numberline {14}数据集详细选择策略}{15}{section.14}%
+\contentsline {subsection}{\numberline {14.1}第一优先级：TartanAir / TartanAir v2}{15}{subsection.14.1}%
+\contentsline {subsection}{\numberline {14.2}第二优先级：DDAD}{15}{subsection.14.2}%
+\contentsline {subsection}{\numberline {14.3}第三优先级：DIODE}{15}{subsection.14.3}%
+\contentsline {subsection}{\numberline {14.4}第四优先级：Virtual KITTI 2}{15}{subsection.14.4}%
+\contentsline {subsection}{\numberline {14.5}最终真实评估：Waymo / Argoverse 2}{15}{subsection.14.5}%
+\contentsline {section}{\numberline {15}数据缺失时如何处理}{16}{section.15}%
+\contentsline {section}{\numberline {16}仿真系统设计}{16}{section.16}%
+\contentsline {subsection}{\numberline {16.1}为什么 RGB-D + PSF 卷积近似是合理的}{16}{subsection.16.1}%
+\contentsline {subsection}{\numberline {16.2}这个近似的边界}{17}{subsection.16.2}%
+\contentsline {subsection}{\numberline {16.3}与参考文献中的仿真数据一致性}{17}{subsection.16.3}%
+\contentsline {section}{\numberline {17}实验设计}{18}{section.17}%
+\contentsline {section}{\numberline {18}实验消融设计}{18}{section.18}%
+\contentsline {subsection}{\numberline {18.1}光学设计消融}{18}{subsection.18.1}%
+\contentsline {subsection}{\numberline {18.2}视场消融}{19}{subsection.18.2}%
+\contentsline {subsection}{\numberline {18.3}距离消融}{19}{subsection.18.3}%
+\contentsline {subsection}{\numberline {18.4}后端模型消融}{19}{subsection.18.4}%
+\contentsline {section}{\numberline {19}潜在创新点}{19}{section.19}%
+\contentsline {section}{\numberline {20}推荐技术路线}{20}{section.20}%
+\contentsline {section}{\numberline {21}论文叙事建议}{20}{section.21}%
+\contentsline {section}{\numberline {22}阶段计划}{20}{section.22}%
+\contentsline {section}{\numberline {23}主要风险与应对}{21}{section.23}%
+\contentsline {subsection}{\numberline {23.1}风险一：Fisher 最优不等于图像最优}{21}{subsection.23.1}%
+\contentsline {subsection}{\numberline {23.2}风险二：自然光宽谱导致编码退化}{21}{subsection.23.2}%
+\contentsline {subsection}{\numberline {23.3}风险三：大视场边缘编码混淆严重}{21}{subsection.23.3}%
+\contentsline {subsection}{\numberline {23.4}风险四：相位不可制造}{21}{subsection.23.4}%
+\contentsline {subsection}{\numberline {23.5}风险五：真实数据缺少 dense depth}{21}{subsection.23.5}%
+\contentsline {subsection}{\numberline {23.6}风险六：自然光宽谱会冲淡深度编码}{22}{subsection.23.6}%
+\contentsline {subsection}{\numberline {23.7}风险七：长距离物理信息可能天然太弱}{22}{subsection.23.7}%
+\contentsline {subsection}{\numberline {23.8}风险八：大视角和大口径可能互相冲突}{22}{subsection.23.8}%
+\contentsline {subsection}{\numberline {23.9}风险九：基础模型可能掩盖超表面贡献}{22}{subsection.23.9}%
+\contentsline {subsection}{\numberline {23.10}风险十：仿真到真实迁移可能失败}{22}{subsection.23.10}%
+\contentsline {subsection}{\numberline {23.11}风险十一：数据集不完全匹配无人机真实需求}{23}{subsection.23.11}%
+\contentsline {section}{\numberline {24}结论}{23}{section.24}%

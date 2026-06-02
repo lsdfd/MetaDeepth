@@ -1,0 +1,28 @@
+[project]
+name = "metasurface-depth"
+version = "0.1.0"
+description = "Information-optimal metasurface depth imaging prototype."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "torch",
+    "torchvision",
+    "matplotlib",
+    "pyyaml",
+    "h5py",
+    "tqdm",
+    "einops",
+    "opencv-python",
+    "pillow",
+    "scikit-image",
+    "torchoptics",
+    "waveprop",
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

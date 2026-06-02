@@ -1,0 +1,55 @@
+\contentsline {section}{\numberline {1}研究目标与核心假设}{3}{section.1}%
+\contentsline {section}{\numberline {2}第一版系统参数设定}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}第一版 baseline 参数}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}工作波长、滤光片与光通量}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}超表面口径、周期和周期数}{5}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}超表面到 CMOS 的距离}{6}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}CMOS 分辨率与像素尺寸}{7}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}目标深度与视场}{7}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}参考数据集基本信息要求}{8}{subsection.2.7}%
+\contentsline {section}{\numberline {3}点源 PSF 计算与 PSF-level Fisher 优化}{8}{section.3}%
+\contentsline {subsection}{\numberline {3.1}点源 PSF 计算}{8}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}相位参数化}{9}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}大视场下的 Fisher 参数}{9}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}有效深度 Fisher}{10}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}PSF-level 优化目标}{10}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}PSF-level 对比实验}{10}{subsection.3.6}%
+\contentsline {section}{\numberline {4}RGB-D 编码图仿真与 image-level Fisher 优化}{11}{section.4}%
+\contentsline {subsection}{\numberline {4.1}RGB-D 到 CMOS 编码图}{11}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}为什么需要 image-level Fisher}{11}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}可计算近似}{12}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}image-level 优化目标}{12}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}图像级对比实验}{12}{subsection.4.5}%
+\contentsline {section}{\numberline {5}编码图到深度图的神经网络恢复}{13}{section.5}%
+\contentsline {subsection}{\numberline {5.1}第一阶段：小模型验证物理 cue}{13}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}第二阶段：结合 Depth Anything V2}{13}{subsection.5.2}%
+\contentsline {paragraph}{方案一：physical prompt}{13}{paragraph*.2}%
+\contentsline {paragraph}{方案二：双分支融合}{14}{paragraph*.3}%
+\contentsline {subsection}{\numberline {5.3}蒸馏损失}{14}{subsection.5.3}%
+\contentsline {section}{\numberline {6}数据集选择与处理}{14}{section.6}%
+\contentsline {subsection}{\numberline {6.1}第一阶段主数据集}{14}{subsection.6.1}%
+\contentsline {paragraph}{Hypersim}{14}{paragraph*.4}%
+\contentsline {paragraph}{使用方式}{14}{paragraph*.5}%
+\contentsline {subsection}{\numberline {6.2}第二阶段补充数据集}{15}{subsection.6.2}%
+\contentsline {paragraph}{TartanAir / TartanGround}{15}{paragraph*.6}%
+\contentsline {paragraph}{Virtual KITTI 2}{15}{paragraph*.7}%
+\contentsline {paragraph}{DIODE}{15}{paragraph*.8}%
+\contentsline {subsection}{\numberline {6.3}后期真实长距离验证}{15}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}数据清洗要求}{16}{subsection.6.4}%
+\contentsline {section}{\numberline {7}实验设计与评价指标}{16}{section.7}%
+\contentsline {subsection}{\numberline {7.1}光学可行性实验}{16}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}PSF-level 对比实验}{16}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}图像级对比实验}{17}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}深度恢复实验}{17}{subsection.7.4}%
+\contentsline {section}{\numberline {8}风险与应对}{18}{section.8}%
+\contentsline {subsection}{\numberline {8.1}长距离物理信息可能太弱}{18}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}大视场深度与角度混淆}{18}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}窄带滤波降低光通量}{18}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}滤光片角度效应限制大视场}{18}{subsection.8.4}%
+\contentsline {subsection}{\numberline {8.5}PSF-level Fisher 与最终任务不一致}{18}{subsection.8.5}%
+\contentsline {subsection}{\numberline {8.6}Depth Anything 掩盖物理编码贡献}{19}{subsection.8.6}%
+\contentsline {subsection}{\numberline {8.7}仿真到真实迁移风险}{19}{subsection.8.7}%
+\contentsline {subsection}{\numberline {8.8}单色方案不是最终形态}{19}{subsection.8.8}%
+\contentsline {section}{\numberline {9}阶段计划}{19}{section.9}%
+\contentsline {section}{\numberline {10}预期贡献}{20}{section.10}%
+\contentsline {section}{\numberline {11}总结}{20}{section.11}%

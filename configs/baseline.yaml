@@ -1,0 +1,31 @@
+system:
+  wavelength_nm: 590.0
+  bandwidth_nm: 10.0
+  aperture_mm: 3.0
+  aperture_scan_mm: [3.0, 5.0, 10.0]
+  metasurface_period_nm: 400.0
+  metasurface_sensor_distance_mm: 37.6
+  metasurface_sensor_distance_scan_mm: [5.0, 10.0, 20.0, 40.0]
+  pupil_grid: 1024
+  debug_pupil_grid: 512
+  psf_grid: 128
+
+sensor:
+  pixel_pitch_um: 2.4
+  resolution:
+    width: 5472
+    height: 3648
+
+scene:
+  fov_deg: 30.0
+  fov_scan_deg: [30.0, 60.0, 90.0]
+  depth_m:
+    min: 1.0
+    max: 10.0
+  depth_samples_m: [1.0, 3.0, 5.0, 10.0]
+  angle_samples_deg: [-15.0, 0.0, 15.0]
+
+simulation:
+  device: cpu
+  dtype: float32
+  normalize_psf: true

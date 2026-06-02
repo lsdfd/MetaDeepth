@@ -1,0 +1,1132 @@
+\documentclass[11pt,a4paper,fontset=none]{ctexart}
+
+\usepackage[margin=2.25cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\setCJKmainfont{Songti SC}
+\setCJKsansfont{Songti SC}
+\setCJKmonofont{Songti SC}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\setlist[itemize]{leftmargin=1.7em}
+\setlist[enumerate]{leftmargin=1.9em}
+
+\title{\bfseries 面向大视场长距离深度感知的\\信息最优超表面成像研究计划}
+\author{研究计划整理}
+\date{2026年6月}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{研究目标与核心假设}
+
+本研究拟探索一种面向大视场、长距离、被动单目深度感知的超表面物理编码方案。需要特别说明的是，第一版实验不直接承诺几十米距离和 $90^\circ$ 以上超大视场的真实硬件效果，而是先参考已有 metasurface depth camera 的参数范围，在近中距和受限视场内验证信息最优编码是否有效，再通过口径、视场角和传播距离扫描评估向更大空间扩展的可行性。核心思想不是直接选择已有的双螺旋 PSF、旋转 PSF 或经验相位模板，而是将超表面看作一个可优化的物理测量前端，通过 Fisher information、CRLB 和图像级可辨性指标，使 CMOS 编码图在目标距离和视场范围内对深度具有更强、更少混淆的可观测信息。
+
+本研究的核心假设为：
+\begin{quote}
+若超表面相位分布通过 nuisance-aware Fisher information 在目标深度、视场角、亮度和噪声条件下优化，则其形成的 CMOS 编码图会比普通透镜、随机相位、DH-PSF/旋转 PSF 等经验编码包含更强的物理深度 cue；该编码图再结合深度神经网络或 Depth Anything 类基础模型，可提升 metric depth 重建的可靠性。
+\end{quote}
+
+该假设包含两层含义：
+\begin{enumerate}
+  \item 光学前端需要先把深度变化转化为可观测、低混淆的 CMOS 图像变化；
+  \item 深度学习后端不是凭空猜测深度，而是从具有物理深度信息的编码图中解码深度。
+\end{enumerate}
+
+因此，本研究计划建立如下闭环：
+\begin{equation}
+\begin{aligned}
+  \text{系统参数设定}
+  &\rightarrow
+  \text{点源 PSF 计算}
+  \rightarrow
+  \text{PSF-level Fisher 优化}\\
+  &\rightarrow
+  \text{RGB-D 编码图仿真}
+  \rightarrow
+  \text{image-level Fisher/任务验证}
+  \rightarrow
+  \text{深度网络恢复}.
+\end{aligned}
+\end{equation}
+
+\section{第一版系统参数设定}
+
+第一版研究不直接追求完整真实硬件，而是先建立一个物理一致、可计算、可验证的单波长窄带仿真系统。参数设定应尽量贴近已有工作，而不是一开始就设定过大的视场和距离。参考 Nano-3D 类工作，可先以 $590\,\mathrm{nm}$ 窄带、毫米级口径、几十毫米 metalens-CMOS 间距、厘米到米级深度范围为 baseline。
+
+\subsection{第一版 baseline 参数}
+
+\begin{longtable}{p{3.2cm}p{4.2cm}p{7.0cm}}
+\toprule
+参数 & 第一版建议 & 理由 \\
+\midrule
+\endhead
+中心波长 & $\lambda_0=590\,\mathrm{nm}$ & 对齐 Nano-3D 工作中的 $590\,\mathrm{nm}$ metalens 与 bandpass filter；比随意选择 $550\,\mathrm{nm}$ 更有文献依据。 \\
+\addlinespace
+滤光片 & $590\,\mathrm{nm}$，带宽 $10\,\mathrm{nm}$ & 保持单波长/窄带 PSF 假设；同时需承认光通量显著下降。 \\
+\addlinespace
+主深度范围 & $\mathcal Z_{\mathrm{main}}=[0.2,1.2]\,\mathrm{m}$ & 对齐 Nano-3D 的 $20$--$120\,\mathrm{cm}$ 设计范围，先验证近距物理编码链路。 \\
+\addlinespace
+扩展深度扫描 & $[1,5]\,\mathrm{m}$，$[5,10]\,\mathrm{m}$ & 只作为 feasibility map，不直接承诺效果。 \\
+\addlinespace
+主 FOV & $30^\circ$ & 即中心左右约 $\pm15^\circ$；更贴近现有 metasurface depth prototype 的有限视场。 \\
+\addlinespace
+扩展 FOV 扫描 & $30^\circ,60^\circ,90^\circ$ & 用于分析大视场下 depth-angle 混淆和滤光片角度效应。 \\
+\addlinespace
+超表面口径 & $D_{\mathrm{ap}}=3\,\mathrm{mm}$ & 对齐 Nano-3D 的 $3\,\mathrm{mm}$ metalens；后续扫描 $2,3,5,10\,\mathrm{mm}$。 \\
+\addlinespace
+周期估计 & $p\approx400\,\mathrm{nm}$ & 可见光 TiO$_2$/SiN metasurface 常见量级；用于估算 meta-atom 数量。 \\
+\addlinespace
+系统级相位采样 & $1024\times1024$ pupil grid & 第一版不逐 meta-atom 仿真，而用等效连续相位采样计算系统 PSF。 \\
+\addlinespace
+超表面-CMOS 距离 & $d=37.6\,\mathrm{mm}$ & 对齐 Nano-3D prototype；另扫描 $5,10,20,40\,\mathrm{mm}$。 \\
+\addlinespace
+CMOS 参考 & $5472\times3648$，$p_s=2.4\,\mu\mathrm{m}$ & 对齐 Sony IMX183 / FLIR Blackfly-S 类配置；网络训练时可 crop/resize 到 $512$ 或 $640$。 \\
+\addlinespace
+主数据集 & Hypersim & 近距、室内、高真实感、dense depth，适合第一版 $0.2$--$1.2\,\mathrm{m}$ 或 $0.5$--$5\,\mathrm{m}$ 验证。 \\
+\addlinespace
+补充数据集 & TartanAir/TartanGround & 用于机器人/无人机视角和 $30^\circ$--$90^\circ$ FOV 扫描，但需按目标距离 mask。 \\
+\bottomrule
+\end{longtable}
+
+这套参数的定位是：先复现和超越已有近距 metalens depth camera 的物理编码思想，再评估是否能向更大 FOV 和更远距离扩展。若在 $0.2$--$1.2\,\mathrm{m}$ 内都无法形成明显优势，则不应直接讨论 $10\,\mathrm{m}$ 以上目标。
+
+\subsection{工作波长、滤光片与光通量}
+
+自然光是宽谱，普通 RGB 图无法唯一恢复连续光谱。为降低问题复杂度，第一版采用窄带滤光片模型：
+\begin{equation}
+  \lambda=\lambda_0.
+\end{equation}
+
+第一版优先选择：
+\begin{equation}
+  \lambda_0=590\,\mathrm{nm},\qquad \Delta\lambda=10\,\mathrm{nm}.
+\end{equation}
+
+更准确的实际系统形式为：
+\begin{equation}
+  \text{自然场景}
+  \rightarrow
+  \text{窄带滤光片}
+  \rightarrow
+  \text{孔径/FOV stop}
+  \rightarrow
+  \text{超表面}
+  \rightarrow
+  \text{CMOS}.
+\end{equation}
+
+加滤光片后，进入超表面的不再是原始宽谱自然光，而是窄带后的光：
+\begin{equation}
+  L_{\mathrm{after}}(x,y,\lambda)
+  =
+  L_{\mathrm{before}}(x,y,\lambda)
+  T_{\mathrm{filter}}(\lambda,\alpha).
+\end{equation}
+
+理想窄带近似为：
+\begin{equation}
+  L_{\mathrm{after}}(x,y,\lambda)
+  \approx
+  S(x,y;\lambda_0)\delta(\lambda-\lambda_0).
+\end{equation}
+
+由于真实 bandpass filter 具有角度依赖性，中心波长可能随入射角蓝移：
+\begin{equation}
+  \lambda_c(\theta)
+  \approx
+  \lambda_c(0)
+  \sqrt{1-\frac{\sin^2\theta}{n_{\mathrm{eff}}^2}}.
+\end{equation}
+因此第一版主 FOV 不宜直接设为 $90^\circ$，而应先从 $30^\circ$ 开始，后续再分析 $60^\circ/90^\circ$ 下滤光片角度漂移和边缘透过率下降。
+
+仿真中，可用线性 RGB 的相近通道近似单波长入射强度：
+\begin{equation}
+  S(x,y;590\,\mathrm{nm})\approx \beta I_G^{\mathrm{lin}}(x,y)
+  \quad \text{或} \quad
+  \beta I_R^{\mathrm{lin}}(x,y),
+\end{equation}
+具体选择取决于数据预处理和相机光谱响应。理论验证阶段可先令 $\beta=1$，真实 SNR 分析阶段必须保留 $\beta<1$。10 nm 滤光片只保留可见光中的很窄一段，光通量会明显降低，因此 photon noise、曝光时间和口径必须进入后续可行性分析。
+
+更接近真实滤光片的仿真可采用 $L=5$ 个离散波长：
+\begin{equation}
+  Y(u,v)
+  \approx
+  \sum_{\ell=1}^{5}
+  w_\ell
+  \mathcal H_{\lambda_\ell}(I_{\lambda_\ell},D),
+  \qquad
+  \lambda_\ell\in[585,595]\,\mathrm{nm}.
+\end{equation}
+这与 Nano-3D 中在 $590\,\mathrm{nm}$ 附近采样多个波长的做法一致。
+
+\subsection{超表面口径、周期和周期数}
+
+设超表面口径直径为 $D_{\mathrm{ap}}$，半径为 $a=D_{\mathrm{ap}}/2$，周期为 $p$。单元数量约为：
+\begin{equation}
+  N_{\mathrm{cell}}
+  \approx
+  \left(\frac{D_{\mathrm{ap}}}{p}\right)^2.
+\end{equation}
+
+长距离深度敏感性与口径强相关。远距离下，深度差 $\Delta z$ 造成的孔径相位差量级约为：
+\begin{equation}
+  \Delta\Phi
+  \approx
+  k\frac{a^2\Delta z}{2z^2},
+  \qquad k=\frac{2\pi}{\lambda}.
+\end{equation}
+
+这说明：
+\begin{itemize}
+  \item 口径越大，远距离波前曲率差异越明显；
+  \item 距离越远，深度信息按 $1/z^2$ 快速减弱；
+  \item 口径过小会导致超表面几乎看不到深度引起的波前曲率变化；
+  \item 周期数过少会导致相位调制自由度不足。
+\end{itemize}
+
+第一版 baseline 取：
+\begin{equation}
+  D_{\mathrm{ap}}=3\,\mathrm{mm},\qquad p=400\,\mathrm{nm}.
+\end{equation}
+此时单边周期数约为：
+\begin{equation}
+  N_{\mathrm{side}}=
+  \frac{3\times10^{-3}}{400\times10^{-9}}
+  =
+  7500,
+\end{equation}
+总单元数约为：
+\begin{equation}
+  N_{\mathrm{cell}}\approx 7500^2=5.625\times10^7.
+\end{equation}
+这意味着真实器件约有 $5625$ 万个 meta-atoms。若口径为 $5\,\mathrm{mm}$，则：
+\begin{equation}
+  N_{\mathrm{cell}}\approx
+  \left(\frac{5\times10^{-3}}{400\times10^{-9}}\right)^2
+  =
+  1.56\times10^8.
+\end{equation}
+
+因此第一版不能逐 meta-atom 优化，而应先做系统级等效相位仿真。所谓等效相位采样，是指用 $512\times512$ 或 $1024\times1024$ 的 pupil grid 表示连续复透射函数：
+\begin{equation}
+  t_\phi(x,y)=\exp[i\phi(x,y)].
+\end{equation}
+例如 $D_{\mathrm{ap}}=3\,\mathrm{mm}$、$1024$ 采样时：
+\begin{equation}
+  \Delta x=
+  \frac{3\,\mathrm{mm}}{1024}
+  \approx
+  2.93\,\mu\mathrm{m}.
+\end{equation}
+每个系统采样点约覆盖 $7$ 个真实 meta-atom 周期。这不是版图级仿真，而是 Fourier optics 系统级仿真；后续再通过 RCWA meta-atom library 将连续相位映射为可制造结构。
+
+需要做参数扫描：
+\begin{equation}
+  D_{\mathrm{ap}}\in\{2,3,5,10\}\,\mathrm{mm},
+  \qquad
+  p\in\{350,400,500\}\,\mathrm{nm}.
+\end{equation}
+
+周期 $p$ 需满足亚波长采样和大视场高阶衍射约束，可粗略写为：
+\begin{equation}
+  p<
+  \frac{\lambda}{n_{\mathrm{env}}(1+\sin\alpha_{\max})}.
+\end{equation}
+
+\subsection{超表面到 CMOS 的距离}
+
+超表面到 CMOS 的距离记为 $d$。PSF 显式依赖传播距离：
+\begin{equation}
+  h=
+  \left|
+  \mathcal P_d
+  \left[
+  P t_\phi U_{\mathrm{in}}
+  \right]
+  \right|^2.
+\end{equation}
+
+因此 $d$ 是核心系统参数。$d$ 太小，编码可能未充分展开；$d$ 太大，PSF 可能过度扩散，导致 SNR 降低和图像结构严重破坏。第一版建议两套距离设置：
+\begin{itemize}
+  \item Nano-3D-like baseline：$d=37.6\,\mathrm{mm}$，对齐已有 $3\,\mathrm{mm}$ metalens prototype；
+  \item compact scan：$d\in\{5,10,20,40\}\,\mathrm{mm}$，评估更紧凑结构下的信息量和 PSF 尺寸。
+\end{itemize}
+最终需要画：
+\begin{equation}
+  \mathrm{CRLB}_z(D_{\mathrm{ap}},d,z,\alpha)
+\end{equation}
+作为可行性地图。
+
+\subsection{CMOS 分辨率与像素尺寸}
+
+第一版可参考 Sony IMX183 / FLIR Blackfly-S 类配置：
+\begin{equation}
+  W\times H=5472\times3648,\qquad
+  p_s=2.4\,\mu\mathrm{m}.
+\end{equation}
+其传感器物理尺寸约为：
+\begin{equation}
+  13.13\,\mathrm{mm}\times 8.76\,\mathrm{mm}.
+\end{equation}
+这与 Nano-3D 的实验配置相近，有利于容纳两个偏振图像或较大的 PSF。网络训练时无需使用全分辨率，可 crop/resize 到 $512\times512$ 或 $640\times640$。
+
+一般地，设 CMOS 分辨率为 $W\times H$，像素尺寸为 $p_s$。PSF 的支持范围必须与传感器尺寸匹配：
+\begin{equation}
+  \mathrm{support}(h)<W p_s \times H p_s.
+\end{equation}
+
+同时 PSF 不能过度扩散。若总光子数固定，PSF 覆盖像素数越多，单像素 photon count 越低，泊松噪声影响越大。因此优化目标中应加入光能集中度或 PSF 尺寸约束。
+
+\subsection{目标深度与视场}
+
+第一版主深度范围不应设得过远。参考已有工作，主实验取：
+\begin{equation}
+  \mathcal Z_{\mathrm{main}}=[0.2,1.2]\,\mathrm{m}.
+\end{equation}
+扩展扫描：
+\begin{equation}
+  [1,5]\,\mathrm{m},\qquad [5,10]\,\mathrm{m}.
+\end{equation}
+其中 $5$--$10\,\mathrm{m}$ 只作为物理可行性分析，不作为第一版必须达到的重建目标。
+
+一般记目标深度范围为：
+\begin{equation}
+  \mathcal Z=[z_{\min},z_{\max}].
+\end{equation}
+
+主视场设为：
+\begin{equation}
+  \mathrm{FOV}_{\mathrm{main}}=30^\circ,
+\end{equation}
+即中心左右约 $\pm15^\circ$。扩展扫描：
+\begin{equation}
+  30^\circ,\quad 60^\circ,\quad 90^\circ.
+\end{equation}
+其中 $90^\circ$ 可对齐 TartanAir/TartanGround 的相机设置，但不应作为第一版硬件目标。一般目标视场范围为：
+\begin{equation}
+  \mathcal A=
+  [-\alpha_{\max},\alpha_{\max}]^2.
+\end{equation}
+
+由于本研究面向大视场，视场角必须作为 Fisher 参数和网络输入显式建模。每个像素对应的角度由相机内参得到：
+\begin{equation}
+  \alpha_x(x,y)=
+  \arctan\left(\frac{x-c_x}{f_x}\right),
+  \qquad
+  \alpha_y(x,y)=
+  \arctan\left(\frac{y-c_y}{f_y}\right).
+\end{equation}
+
+\subsection{参考数据集基本信息要求}
+
+用于仿真的 RGB-D 数据集必须提供或可恢复以下信息：
+\begin{itemize}
+  \item RGB 图像；
+  \item dense 或 semi-dense depth；
+  \item 相机内参 $K$；
+  \item 分辨率；
+  \item depth 单位和有效范围；
+  \item depth 定义，是 optical-axis depth 还是 range depth；
+  \item RGB 是否为线性光强，若不是需做 inverse gamma；
+  \item 相机 FOV，若未直接提供，可由 $K$ 和分辨率计算。
+\end{itemize}
+
+相机内参为：
+\begin{equation}
+  K=
+  \begin{bmatrix}
+  f_x&0&c_x\\
+  0&f_y&c_y\\
+  0&0&1
+  \end{bmatrix}.
+\end{equation}
+
+像素到光线方向：
+\begin{equation}
+  \bm r(x,y)=
+  K^{-1}
+  \begin{bmatrix}
+  x\\y\\1
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+  \frac{x-c_x}{f_x}\\
+  \frac{y-c_y}{f_y}\\
+  1
+  \end{bmatrix}.
+\end{equation}
+
+\section{点源 PSF 计算与 PSF-level Fisher 优化}
+
+\subsection{点源 PSF 计算}
+
+设超表面平面坐标为 $(x_m,y_m)$，CMOS 平面坐标为 $(x_i,y_i)$。点源深度为 $z$，视场角为 $\alpha_x,\alpha_y$。点源到超表面上一点的距离为：
+\begin{equation}
+  R_o(x_m,y_m)
+  =
+  \sqrt{
+  (x_m-z\tan\alpha_x)^2+
+  (y_m-z\tan\alpha_y)^2+
+  z^2
+  }.
+\end{equation}
+
+入射到超表面的球面波为：
+\begin{equation}
+  U_{\mathrm{in}}(x_m,y_m)
+  =
+  A_o
+  \frac{\exp[i k R_o(x_m,y_m)]}{R_o(x_m,y_m)}.
+\end{equation}
+
+第一版用理想相位型超表面：
+\begin{equation}
+  t_\phi(x_m,y_m,\lambda_0)=\exp[i\phi(x_m,y_m)].
+\end{equation}
+
+经过超表面后的场为：
+\begin{equation}
+  U_0(x_m,y_m)
+  =
+  P(x_m,y_m)t_\phi(x_m,y_m,\lambda_0)U_{\mathrm{in}}(x_m,y_m).
+\end{equation}
+
+传播到 CMOS：
+\begin{equation}
+  U_i(x_i,y_i)
+  =
+  \mathcal P_d\{U_0\}(x_i,y_i).
+\end{equation}
+
+PSF 为：
+\begin{equation}
+  h(x_i,y_i;z,\alpha_x,\alpha_y,\lambda_0,\phi,d)
+  =
+  |U_i(x_i,y_i)|^2.
+\end{equation}
+
+简写：
+\begin{equation}
+\boxed{
+  h=
+  \left|
+  \mathcal P_d
+  \left[
+  P t_\phi U_{\mathrm{in}}
+  \right]
+  \right|^2.
+}
+\end{equation}
+
+数值计算可采用 Fresnel 传播或角谱法，并用 FFT 加速：
+\begin{equation}
+  U_i
+  =
+  \mathcal F^{-1}
+  \left[
+  \mathcal F(U_0)
+  H(f_x,f_y;d)
+  \right].
+\end{equation}
+
+\subsection{相位参数化}
+
+第一版不直接优化每个 meta-atom，而是优化低维相位参数：
+\begin{equation}
+  \phi(x,y)=\sum_{m=1}^{M}c_mB_m(x,y).
+\end{equation}
+
+候选基函数包括：
+\begin{itemize}
+  \item Zernike 多项式；
+  \item Fourier basis；
+  \item 分区常数或分区多项式；
+  \item 低频可制造相位块。
+\end{itemize}
+
+优化变量为：
+\begin{equation}
+  \bm c=[c_1,c_2,\ldots,c_M]^T.
+\end{equation}
+
+这样可以降低维度，避免一开始优化数百万个纳米结构。
+
+\subsection{大视场下的 Fisher 参数}
+
+由于本研究背景是大视场，Fisher 参数不能只有深度。第一版建议设：
+\begin{equation}
+  \bm\theta=
+  \begin{bmatrix}
+  z\\
+  \alpha_x\\
+  \alpha_y\\
+  a
+  \end{bmatrix},
+\end{equation}
+其中 $a$ 表示点源亮度或局部反射强度。
+
+观测均值：
+\begin{equation}
+  \bm\mu(\bm\theta;\phi)
+  =
+  a\bm h(z,\alpha_x,\alpha_y;\phi).
+\end{equation}
+
+Jacobian：
+\begin{equation}
+  \bm J=
+  \frac{\partial\bm\mu}{\partial\bm\theta}
+  =
+  \begin{bmatrix}
+  \frac{\partial\bm\mu}{\partial z}&
+  \frac{\partial\bm\mu}{\partial\alpha_x}&
+  \frac{\partial\bm\mu}{\partial\alpha_y}&
+  \frac{\partial\bm\mu}{\partial a}
+  \end{bmatrix}.
+\end{equation}
+
+高斯噪声下：
+\begin{equation}
+  \bm F=
+  \bm J^T\bm\Sigma^{-1}\bm J.
+\end{equation}
+
+矩阵 $\bm F$ 的非对角项，例如 $F_{z\alpha_x}$ 和 $F_{z\alpha_y}$，表示深度变化与角度变化在 CMOS 图像中是否混淆。大视场优化必须抑制这种混淆。
+
+\subsection{有效深度 Fisher}
+
+将参数写成：
+\begin{equation}
+  \bm\theta=[z,\bm\eta^T]^T,
+  \qquad
+  \bm\eta=[\alpha_x,\alpha_y,a]^T.
+\end{equation}
+
+Fisher matrix 分块：
+\begin{equation}
+  \bm F=
+  \begin{bmatrix}
+  F_{zz}&\bm F_{z\eta}\\
+  \bm F_{\eta z}&\bm F_{\eta\eta}
+  \end{bmatrix}.
+\end{equation}
+
+深度的有效 Fisher information 为：
+\begin{equation}
+\boxed{
+  \mathcal I_z^{\mathrm{eff}}
+  =
+  F_{zz}
+  -
+  \bm F_{z\eta}
+  \bm F_{\eta\eta}^{-1}
+  \bm F_{\eta z}.
+}
+\end{equation}
+
+它表示：扣除与角度、亮度等 nuisance parameters 混淆的部分后，真正用于估计深度的信息。
+
+\subsection{PSF-level 优化目标}
+
+平均型目标：
+\begin{equation}
+  \phi^\star
+  =
+  \arg\max_\phi
+  \mathbb E_{z,\alpha_x,\alpha_y}
+  \left[
+  \log
+  \mathcal I_z^{\mathrm{eff}}(z,\alpha_x,\alpha_y;\phi)
+  \right].
+\end{equation}
+
+长距离大视场更关注最差情况，可采用 max-min 目标：
+\begin{equation}
+  \phi^\star
+  =
+  \arg\max_\phi
+  \min_{z\in\mathcal Z,\alpha\in\mathcal A}
+  \mathcal I_z^{\mathrm{eff}}(z,\alpha;\phi).
+\end{equation}
+
+优化方法可从简单到复杂逐步推进：
+\begin{enumerate}
+  \item 低维参数网格搜索或随机搜索，建立物理直觉；
+  \item CMA-ES、Bayesian optimization 等黑盒优化；
+  \item 使用 PyTorch/JAX 实现可微传播和自动微分，采用 Adam 优化相位参数；
+  \item 加入相位平滑、能量集中、PSF 尺寸和制造约束。
+\end{enumerate}
+
+\subsection{PSF-level 对比实验}
+
+对比对象包括：
+\begin{itemize}
+  \item 普通透镜；
+  \item 随机相位；
+  \item DH-PSF；
+  \item rotating PSF；
+  \item 人工螺旋/分环相位；
+  \item Fisher-optimized phase。
+\end{itemize}
+
+输出结果包括：
+\begin{itemize}
+  \item PSF 随深度变化图；
+  \item PSF 随视场角变化图；
+  \item $\mathrm{CRLB}_z(z,\alpha)$ 热力图；
+  \item depth-angle 混淆图；
+  \item 不同口径 $D_{\mathrm{ap}}$ 和距离 $d$ 下的 feasibility map。
+\end{itemize}
+
+\section{RGB-D 编码图仿真与 image-level Fisher 优化}
+
+\subsection{RGB-D 到 CMOS 编码图}
+
+单波长窄带下，RGB-D 图像被近似为许多小点源集合：
+\begin{equation}
+  (x,y)
+  \mapsto
+  \{I_G^{\mathrm{lin}}(x,y),D(x,y),\alpha_x(x,y),\alpha_y(x,y)\}.
+\end{equation}
+
+整图成像公式为：
+\begin{equation}
+  Y(u,v)
+  =
+  \sum_x\sum_y
+  I_G^{\mathrm{lin}}(x,y)
+  h
+  \left(
+  u,v;
+  x,y,
+  D(x,y),
+  \alpha_x(x,y),
+  \alpha_y(x,y)
+  \right).
+\end{equation}
+
+实际计算可采用深度分层卷积。将深度离散为 $z_1,\ldots,z_K$，定义软 mask：
+\begin{equation}
+  M_k(x,y)
+  =
+  \frac{
+  \exp\left[-\frac{(D(x,y)-z_k)^2}{2\sigma_z^2}\right]
+  }{
+  \sum_j
+  \exp\left[-\frac{(D(x,y)-z_j)^2}{2\sigma_z^2}\right]
+  }.
+\end{equation}
+
+编码图为：
+\begin{equation}
+\boxed{
+  Y(u,v)
+  =
+  \sum_{k=1}^{K}
+  \left[
+  h_k*
+  \left(
+  M_k I_G^{\mathrm{lin}}
+  \right)
+  \right](u,v).
+}
+\end{equation}
+
+若考虑大视场，可进一步按视场角分区或采用 spatially varying PSF/eigenPSF 表示。
+
+\subsection{为什么需要 image-level Fisher}
+
+PSF-level Fisher 只验证点源对深度敏感，但自然图像包含纹理、遮挡、多深度层叠加、低纹理区域和噪声。点源 PSF 敏感不代表整张图像深度一定可恢复。因此需要 image-level Fisher 或任务级验证。
+
+将编码图拉平成向量：
+\begin{equation}
+  \bm y=
+  \bm\mu(\bm X,\bm D;\phi)+\bm n.
+\end{equation}
+
+深度图拉平成：
+\begin{equation}
+  \bm D=[D_1,D_2,\ldots,D_M]^T.
+\end{equation}
+
+图像级 Fisher matrix：
+\begin{equation}
+\boxed{
+  \bm F_D^{\mathrm{img}}
+  =
+  \left(
+  \frac{\partial\bm\mu}{\partial\bm D}
+  \right)^T
+  \bm\Sigma^{-1}
+  \left(
+  \frac{\partial\bm\mu}{\partial\bm D}
+  \right).
+}
+\end{equation}
+
+该矩阵衡量整张 CMOS 编码图对深度图扰动的统计可分性。
+
+\subsection{可计算近似}
+
+完整 image-level Fisher 维度巨大，实际采用近似：
+\begin{itemize}
+  \item 对角 Fisher：只看每个像素深度自身的信息；
+  \item patch-level Fisher：局部 patch 内用平面或低维参数描述深度；
+  \item depth-bin Fisher：分析不同深度层编码响应的相关性；
+  \item 深度扰动可分性：比较真实深度与扰动深度生成的编码图统计距离；
+  \item 任务级深度误差：最终以网络恢复性能验证。
+\end{itemize}
+
+其中深度扰动统计距离可写为：
+\begin{equation}
+  d_M^2
+  =
+  (\bm\mu_a-\bm\mu_b)^T
+  \bm\Sigma^{-1}
+  (\bm\mu_a-\bm\mu_b),
+\end{equation}
+比普通 L2 像素差更合理，因为它考虑噪声。
+
+\subsection{image-level 优化目标}
+
+可定义：
+\begin{equation}
+  \mathcal L_{\mathrm{imgFI}}
+  =
+  -
+  \mathbb E_{(\bm X,\bm D)}
+  \left[
+  \sum_j
+  w_j
+  \log
+  \left(
+  \left\|
+  \frac{\partial\bm\mu_\phi}{\partial D_j}
+  \right\|_{\bm\Sigma^{-1}}^2
+  +
+  \epsilon
+  \right)
+  \right].
+\end{equation}
+
+联合目标：
+\begin{equation}
+  \phi^\star
+  =
+  \arg\min_\phi
+  \left[
+  \lambda_{\mathrm{psf}}\mathcal L_{\mathrm{psf}}
+  +
+  \lambda_{\mathrm{img}}\mathcal L_{\mathrm{imgFI}}
+  +
+  \lambda_{\mathrm{energy}}\mathcal L_{\mathrm{energy}}
+  +
+  \lambda_{\mathrm{fab}}\mathcal L_{\mathrm{fab}}
+  \right].
+\end{equation}
+
+\subsection{图像级对比实验}
+
+建议比较以下设计目标与最终深度恢复性能之间的关系：
+\begin{itemize}
+  \item 普通 L2 PSF 差异；
+  \item Mahalanobis/KL 统计距离；
+  \item $F_{zz}$；
+  \item nuisance-aware $\mathcal I_z^{\mathrm{eff}}$；
+  \item image-level Fisher；
+  \item task-driven depth loss。
+\end{itemize}
+
+这可以回答一个重要问题：哪类物理指标与最终神经网络深度恢复最一致。
+
+\section{编码图到深度图的神经网络恢复}
+
+\subsection{第一阶段：小模型验证物理 cue}
+
+固定优化得到的相位 $\phi^\star$，用 RGB-D 数据生成编码图：
+\begin{equation}
+  I_{\mathrm{meta}}
+  =
+  \mathcal H_{\phi^\star}(I_{\mathrm{rgb}},D).
+\end{equation}
+
+网络输入：
+\begin{equation}
+  [I_{\mathrm{rgb}},I_{\mathrm{meta}},R_x,R_y],
+\end{equation}
+其中 $R_x,R_y$ 是每个像素的 ray-angle map。
+
+输出：
+\begin{equation}
+  \hat D=f_\psi(I_{\mathrm{rgb}},I_{\mathrm{meta}},R_x,R_y).
+\end{equation}
+
+第一版模型可采用：
+\begin{itemize}
+  \item 小型 U-Net；
+  \item ResNet-UNet；
+  \item Lite-Mono 风格轻量 encoder-decoder；
+  \item RGB branch + Meta branch 双分支结构。
+\end{itemize}
+
+训练损失：
+\begin{equation}
+  \mathcal L_{\mathrm{depth}}
+  =
+  \|M\odot(\hat D-D)\|_1.
+\end{equation}
+
+可加入梯度损失：
+\begin{equation}
+  \mathcal L_{\mathrm{grad}}
+  =
+  \|\nabla\hat D-\nabla D\|_1.
+\end{equation}
+
+\subsection{第二阶段：结合 Depth Anything V2}
+
+Depth Anything V2 可作为强语义几何先验。建议两种融合方案。
+
+\paragraph{方案一：physical prompt}
+若超表面设计为双通道，例如偏振双通道：
+\begin{equation}
+  I_x,\quad I_y,
+\end{equation}
+可构造 pseudo-RGB：
+\begin{equation}
+  I_{\mathrm{prompt}}
+  =
+  \left(
+  I_x,\,
+  I_y,\,
+  \frac{I_x+I_y}{2}
+  \right).
+\end{equation}
+然后使用 Depth Anything V2 / DPT 架构和预训练权重 fine-tune。
+
+\paragraph{方案二：双分支融合}
+RGB 分支使用 Depth Anything V2 encoder：
+\begin{equation}
+  F_{\mathrm{rgb}}=E_{\mathrm{DA}}(I_{\mathrm{rgb}}).
+\end{equation}
+
+Meta 分支提取物理编码特征：
+\begin{equation}
+  F_{\mathrm{meta}}=E_{\mathrm{meta}}(I_{\mathrm{meta}},R_x,R_y).
+\end{equation}
+
+融合输出：
+\begin{equation}
+  \hat D=G(F_{\mathrm{rgb}},F_{\mathrm{meta}}).
+\end{equation}
+
+该方案叙事更清晰：Depth Anything 提供语义/几何先验，超表面编码图提供物理 metric cue，ray-angle map 处理大视场空间变化 PSF。
+
+\subsection{蒸馏损失}
+
+若使用 Depth Anything V2 teacher 输出 $D_T$，可加入 scale-shift invariant 蒸馏：
+\begin{equation}
+  \mathcal L_{\mathrm{distill}}
+  =
+  \left\|
+  \mathrm{SSI}(\hat D)
+  -
+  \mathrm{SSI}(D_T)
+  \right\|_1.
+\end{equation}
+
+总损失：
+\begin{equation}
+  \mathcal L
+  =
+  \lambda_1\mathcal L_{\mathrm{depth}}
+  +
+  \lambda_2\mathcal L_{\mathrm{grad}}
+  +
+  \lambda_3\mathcal L_{\mathrm{distill}}.
+\end{equation}
+
+\section{数据集选择与处理}
+
+\subsection{第一阶段主数据集}
+
+第一阶段优先选择 Hypersim，而不是直接使用户外长距离数据集。原因是第一版物理系统主距离为 $0.2$--$1.2\,\mathrm{m}$ 或 $0.5$--$5\,\mathrm{m}$，更接近室内和近距物体场景。
+
+\paragraph{Hypersim}
+\begin{itemize}
+  \item 类型：合成室内高真实感数据集；
+  \item 规模：约数百个室内场景、数万张图像；
+  \item 标注：RGB、dense depth、surface normal、semantic/instance 信息、camera trajectory；
+  \item 优点：深度密集、几何信息清晰、近距物体丰富，适合生成超表面编码图；
+  \item 缺点：偏室内，无法直接代表户外大空间。
+\end{itemize}
+
+\paragraph{使用方式}
+第一版从 Hypersim 中选取目标深度范围内的像素：
+\begin{equation}
+  M_{\mathrm{valid}}(x,y)
+  =
+  \mathbb 1[0.2<D(x,y)<1.2]
+\end{equation}
+或：
+\begin{equation}
+  M_{\mathrm{valid}}(x,y)
+  =
+  \mathbb 1[0.5<D(x,y)<5].
+\end{equation}
+超出范围的像素可作为背景保留，但不参与 metric depth loss。
+
+\subsection{第二阶段补充数据集}
+
+\paragraph{TartanAir / TartanGround}
+\begin{itemize}
+  \item 类型：合成机器人/无人机/地面机器人数据；
+  \item 标注：RGB、depth、segmentation、pose、flow 等；
+  \item 相机：TartanGround 文档中包含 $90^\circ$ FOV、$640\times640$ 相机设置；
+  \item 用途：不是第一版近距硬件主训练，而是用于研究 $30^\circ$、$60^\circ$、$90^\circ$ FOV 下的几何和角度混淆；
+  \item 注意：若目标深度为 $0.2$--$1.2\,\mathrm{m}$ 或 $0.5$--$5\,\mathrm{m}$，必须按深度范围 mask，大量远处像素不能直接作为有效监督。
+\end{itemize}
+
+\paragraph{Virtual KITTI 2}
+\begin{itemize}
+  \item 类型：合成自动驾驶数据；
+  \item 分辨率：常见 $1242\times375$；
+  \item 标注：RGB、depth、segmentation、flow、pose、calib.txt；
+  \item 优点：户外、中远距离、天气光照可控；
+  \item 用途：后续 $5$--$10\,\mathrm{m}$ 甚至更远距离可行性分析和户外泛化，不建议作为第一阶段主训练集。
+\end{itemize}
+
+\paragraph{DIODE}
+\begin{itemize}
+  \item 类型：真实 indoor/outdoor dense depth；
+  \item 用途：真实域泛化补充；
+  \item 注意：真实深度噪声、相机模型和线性光强处理需要更谨慎。
+\end{itemize}
+
+\subsection{后期真实长距离验证}
+
+\begin{itemize}
+  \item DDAD；
+  \item Waymo Open Dataset；
+  \item Argoverse 2 Sensor。
+\end{itemize}
+
+这些数据集通常有相机标定和 LiDAR 深度，但深度可能稀疏、遮挡复杂、处理成本高，适合后期真实户外评估。
+
+\subsection{数据清洗要求}
+
+所有数据进入仿真前必须处理：
+\begin{enumerate}
+  \item RGB 转线性光强；
+  \item depth 转米；
+  \item 确认 depth 是 optical-axis depth 还是 range depth；
+  \item 根据 resize/crop 更新内参；
+  \item 计算每个像素的 ray angle；
+  \item mask 无效深度和非目标深度范围；
+  \item 确保数据集 FOV 与目标系统一致或进行合理重投影。
+\end{enumerate}
+
+\section{实验设计与评价指标}
+
+\subsection{光学可行性实验}
+
+目标：先验证近距和中距是否存在足够物理深度信息，再评估长距离和大视场扩展可行性。
+
+实验：
+\begin{equation}
+  \mathrm{CRLB}_z(D_{\mathrm{ap}},d,z,\alpha)
+\end{equation}
+随口径、超表面-CMOS 距离、目标深度和视场角变化。
+
+第一版必须报告以下扫描：
+\begin{equation}
+  z\in[0.2,1.2]\,\mathrm{m},
+  \quad
+  \mathrm{FOV}=30^\circ,
+  \quad
+  D_{\mathrm{ap}}=3\,\mathrm{mm},
+  \quad
+  d=37.6\,\mathrm{mm}.
+\end{equation}
+扩展扫描：
+\begin{equation}
+  z\in[1,5]\,\mathrm{m},[5,10]\,\mathrm{m},
+  \quad
+  \mathrm{FOV}\in\{30^\circ,60^\circ,90^\circ\},
+  \quad
+  D_{\mathrm{ap}}\in\{2,3,5,10\}\,\mathrm{mm}.
+\end{equation}
+若 $5$--$10\,\mathrm{m}$ 区间 CRLB 明显恶化，则不应在第一版承诺该范围内的密集高精度深度。
+
+\subsection{PSF-level 对比实验}
+
+比较：
+\begin{itemize}
+  \item 普通透镜；
+  \item 随机相位；
+  \item DH-PSF；
+  \item rotating PSF；
+  \item PSF-level Fisher phase；
+  \item nuisance-aware Fisher phase。
+\end{itemize}
+
+评价：
+\begin{itemize}
+  \item $\mathcal I_z^{\mathrm{eff}}$；
+  \item CRLB；
+  \item depth-angle 混淆；
+  \item PSF 能量集中度；
+  \item PSF 支持大小。
+\end{itemize}
+
+\subsection{图像级对比实验}
+
+比较不同相位生成的 $I_{\mathrm{meta}}$：
+\begin{itemize}
+  \item image-level Fisher；
+  \item depth perturbation 可分性；
+  \item 低纹理区域可分性；
+  \item 中心/边缘视场分区表现；
+  \item 近/中/远距离分区表现。
+\end{itemize}
+
+\subsection{深度恢复实验}
+
+输入组合：
+\begin{itemize}
+  \item RGB-only；
+  \item Meta-only；
+  \item RGB + Meta；
+  \item RGB + Meta + ray angle；
+  \item RGB + Meta + Depth Anything distillation。
+\end{itemize}
+
+光学编码组合：
+\begin{itemize}
+  \item random phase；
+  \item DH-PSF；
+  \item rotating PSF；
+  \item PSF-level Fisher phase；
+  \item image-level Fisher phase；
+  \item Fisher + task loss phase。
+\end{itemize}
+
+评价指标：
+\begin{itemize}
+  \item AbsRel；
+  \item RMSE；
+  \item SILog；
+  \item $\delta_1$；
+  \item metric scale error；
+  \item 远距离分段误差；
+  \item 边缘视场误差；
+  \item 低纹理区域误差；
+  \item 推理速度、参数量和计算量。
+\end{itemize}
+
+\section{风险与应对}
+
+\subsection{长距离物理信息可能太弱}
+
+长距离下波前曲率变化随 $1/z^2$ 衰减。应先画 feasibility map，若理论 CRLB 已不可接受，应调整目标距离范围或将任务改为远距离尺度锚点/障碍物距离分段。
+
+\subsection{大视场深度与角度混淆}
+
+大视场下角度变化会显著改变 PSF。应将 $\alpha_x,\alpha_y$ 放入 Fisher 参数，并优化有效深度信息 $\mathcal I_z^{\mathrm{eff}}$，同时将 ray-angle map 输入网络。
+
+\subsection{窄带滤波降低光通量}
+
+单波长简化有利于仿真和标定，但会损失光通量。$10\,\mathrm{nm}$ bandpass 只保留很窄谱段，室内弱光和远距离场景会明显受 SNR 限制。应在后续加入 photon noise、曝光、滤光片透过率和 CMOS 量子效率，分析 SNR 对深度误差的影响。
+
+\subsection{滤光片角度效应限制大视场}
+
+干涉型窄带滤光片的中心波长随入射角变化，大视场边缘可能出现中心波长蓝移和透过率下降。因此第一版主 FOV 设为 $30^\circ$，并将 $60^\circ/90^\circ$ 作为扩展扫描。若滤光片角度效应导致边缘 PSF 偏离设计，需要在 forward model 中加入 $T_{\mathrm{filter}}(\lambda,\alpha)$。
+
+\subsection{PSF-level Fisher 与最终任务不一致}
+
+点源敏感不一定代表自然图像可恢复。应加入 image-level Fisher、深度扰动可分性和最终神经网络误差三层验证。
+
+\subsection{Depth Anything 掩盖物理编码贡献}
+
+若大模型太强，可能掩盖超表面贡献。必须设置 RGB-only、Meta-only、RGB+Meta、随机相位、DH-PSF、Fisher phase 等严格消融。
+
+\subsection{仿真到真实迁移风险}
+
+真实器件存在加工误差、装调偏差、温漂、杂散光和传感器响应误差。后期应测真实 PSF library，用真实 PSF 替代理想 PSF，并用少量真实样本微调。
+
+\subsection{单色方案不是最终形态}
+
+单色窄带方案的优势是可控，但光通量不足。后续应探索 RGB 三离散波长或宽谱计算成像。可先在理想层面设：
+\begin{equation}
+  t_R(x,y),\quad t_G(x,y),\quad t_B(x,y),
+\end{equation}
+并使总 Fisher 近似相加：
+\begin{equation}
+  \bm F_{\mathrm{total}}
+  =
+  \bm F_R+\bm F_G+\bm F_B.
+\end{equation}
+若 RGB 多通道显著优于单色，再通过 RCWA 建立 meta-atom library：
+\begin{equation}
+  g\rightarrow
+  [A_R,\phi_R,A_G,\phi_G,A_B,\phi_B],
+\end{equation}
+评估单层 RGB metasurface 是否可实现。若单层 RGB 匹配困难，可考虑分区 RGB、偏振复用或普通镜头+超表面编码片等折中结构。
+
+\section{阶段计划}
+
+\begin{longtable}{p{2.3cm}p{6.2cm}p{5.3cm}}
+\toprule
+阶段 & 任务 & 产出 \\
+\midrule
+\endhead
+1--2周 & 固定 Nano-3D-like 第一版参数：$\lambda_0=590\,\mathrm{nm}$、$D_{\mathrm{ap}}=3\,\mathrm{mm}$、$d=37.6\,\mathrm{mm}$、FOV $30^\circ$、深度 $0.2$--$1.2\,\mathrm{m}$。搭建单波长 PSF 仿真。 & 点源 PSF 计算代码；普通透镜/随机相位 PSF；baseline 参数表。 \\
+\addlinespace
+3--4周 & 实现 PSF-level Fisher 与 nuisance-aware Fisher，参数含 $z,\alpha_x,\alpha_y,a$。 & $0.2$--$1.2\,\mathrm{m}$ CRLB map；depth-angle 混淆分析。 \\
+\addlinespace
+5--6周 & 优化低维相位，比较 DH-PSF、rotating PSF 和 Fisher phase；扫描 $D_{\mathrm{ap}}$ 和 $d$。 & 信息最优相位初版；PSF 对比图；口径/距离 feasibility map。 \\
+\addlinespace
+7--9周 & 接入 Hypersim，按 $0.2$--$1.2\,\mathrm{m}$ 或 $0.5$--$5\,\mathrm{m}$ 深度范围生成 RGB-D 编码图。 & 分层 PSF rendering 管线；Hypersim 编码图数据集。 \\
+\addlinespace
+10--12周 & 做 image-level Fisher / patch Fisher 分析。 & 图像级可辨性结果；和 PSF-level 指标对比。 \\
+\addlinespace
+13--15周 & 训练小型深度恢复网络。 & RGB-only / RGB+Meta 等消融结果。 \\
+\addlinespace
+16--18周 & 融合 Depth Anything V2，做蒸馏或双分支融合；补充 TartanAir/TartanGround 的 FOV 扫描。 & 高性能恢复模型；teacher/student 对比；$30^\circ/60^\circ/90^\circ$ 角度泛化分析。 \\
+\addlinespace
+后续 & 加入 $590\,\mathrm{nm}$ 5 波长采样、滤光片角度模型、制造约束、相位量化、RCWA library 和真实 PSF 标定。 & 可制造超表面设计与真实迁移实验计划。 \\
+\bottomrule
+\end{longtable}
+
+\section{预期贡献}
+
+本研究预期形成以下贡献：
+\begin{enumerate}
+  \item 建立面向大视场长距离深度感知的超表面 PSF 仿真与 Fisher 分析框架；
+  \item 提出显式考虑深度、视场角和亮度混淆的 nuisance-aware information-optimal 相位优化方法；
+  \item 从 PSF-level 推进到 image-level Fisher，分析物理指标与自然图像深度恢复之间的关系；
+  \item 构建 RGB-D 到超表面编码图的数据生成管线；
+  \item 结合小型 decoder 和 Depth Anything V2，验证信息最优物理编码对 metric depth 重建的贡献；
+  \item 给出超表面口径、周期数、CMOS 距离、FOV 和目标距离之间的可行性分析。
+\end{enumerate}
+
+\section{总结}
+
+本研究计划的关键不是简单地将超表面图像送入神经网络，而是先从物理估计理论出发，设计一个在目标大视场和长距离范围内对深度具有最大有效可观测性的光学编码器。PSF-level Fisher 用于保证点源深度敏感性；image-level Fisher 用于验证自然图像叠加后深度信息仍然存在；深度网络和 Depth Anything V2 用于从物理编码图中恢复 dense metric depth。最终目标是形成一条从物理编码设计到学习解码验证的完整研究闭环。
+
+\end{document}

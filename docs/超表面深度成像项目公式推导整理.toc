@@ -1,0 +1,47 @@
+\contentsline {section}{\numberline {1}总览}{3}{section.1}%
+\contentsline {section}{\numberline {2}符号定义}{3}{section.2}%
+\contentsline {section}{\numberline {3}相机内参：像素如何变成光线方向}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}针孔相机模型}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}深度图如何变成三维点}{4}{subsection.3.2}%
+\contentsline {section}{\numberline {4}RGB 图像如何近似为超表面前的入射强度}{5}{section.4}%
+\contentsline {subsection}{\numberline {4.1}sRGB 到线性光强}{5}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}为什么 RGB 不能唯一恢复连续光谱}{5}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}单波长窄带近似}{5}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}RGB 三代表波长近似}{6}{subsection.4.4}%
+\contentsline {section}{\numberline {5}一个点源经过超表面形成 PSF 的推导}{6}{section.5}%
+\contentsline {subsection}{\numberline {5.1}系统几何}{6}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}点源到达超表面的入射场}{6}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}超表面复透射}{7}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}从超表面传播到 CMOS}{7}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}PSF 定义}{7}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}角谱法与 FFT 计算}{7}{subsection.5.6}%
+\contentsline {section}{\numberline {6}超表面尺寸、周期和 CMOS 距离对 PSF 的影响}{8}{section.6}%
+\contentsline {subsection}{\numberline {6.1}口径决定长距离深度敏感性}{8}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}周期数决定相位表达能力}{8}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}超表面到 CMOS 距离是系统变量}{8}{subsection.6.3}%
+\contentsline {section}{\numberline {7}从 RGB-D 到 CMOS 整图响应}{8}{section.7}%
+\contentsline {subsection}{\numberline {7.1}每个像素作为一个小点源}{8}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}通用空间变化成像公式}{9}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}局部平移不变近似}{9}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}深度分层卷积近似}{9}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}RGB 三波长整图响应}{10}{subsection.7.5}%
+\contentsline {subsection}{\numberline {7.6}CMOS 噪声与量化}{10}{subsection.7.6}%
+\contentsline {section}{\numberline {8}PSF-level Fisher 信息推导}{10}{section.8}%
+\contentsline {subsection}{\numberline {8.1}单参数深度估计}{10}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}多参数 nuisance-aware Fisher}{11}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}泊松噪声下的 Fisher}{11}{subsection.8.3}%
+\contentsline {section}{\numberline {9}Image-level Fisher 信息推导}{12}{section.9}%
+\contentsline {subsection}{\numberline {9.1}整图观测模型}{12}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}均值函数的离散形式}{12}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}深度图 Fisher matrix}{12}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}为什么 image-level Fisher 更真实}{13}{subsection.9.4}%
+\contentsline {subsection}{\numberline {9.5}实际可计算近似}{13}{subsection.9.5}%
+\contentsline {paragraph}{对角 Fisher}{13}{paragraph*.2}%
+\contentsline {paragraph}{Patch-level Fisher}{13}{paragraph*.3}%
+\contentsline {paragraph}{Depth-bin Fisher}{13}{paragraph*.4}%
+\contentsline {section}{\numberline {10}优化目标整理}{13}{section.10}%
+\contentsline {subsection}{\numberline {10.1}PSF-level 信息优化}{13}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Image-level Fisher 优化}{14}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}恢复网络训练}{14}{subsection.10.3}%
+\contentsline {section}{\numberline {11}推荐实施顺序}{14}{section.11}%
+\contentsline {section}{\numberline {12}一句话总结}{15}{section.12}%

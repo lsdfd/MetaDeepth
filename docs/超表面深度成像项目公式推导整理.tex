@@ -1,0 +1,1251 @@
+\documentclass[11pt,a4paper,fontset=none]{ctexart}
+
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\setCJKmainfont{Songti SC}
+\setCJKsansfont{Songti SC}
+\setCJKmonofont{Songti SC}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\setlist[itemize]{leftmargin=1.7em}
+\setlist[enumerate]{leftmargin=1.9em}
+
+\title{\bfseries 超表面深度成像项目公式推导整理\\
+\large 从 RGB-D 数据、点源 PSF、整图成像到 Fisher 信息优化}
+\author{项目推导笔记}
+\date{2026年6月}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{总览}
+
+本项目的核心链路可以写成：
+\begin{equation}
+  I_{\mathrm{rgb}},D,K
+  \longrightarrow
+  \text{场景点源集合}
+  \longrightarrow
+  h(z,\alpha,\lambda;\phi,d)
+  \longrightarrow
+  Y_{\mathrm{CMOS}}
+  \longrightarrow
+  \hat D .
+\end{equation}
+
+其中 $I_{\mathrm{rgb}}$ 是普通 RGB 图像，$D$ 是对应深度图，$K$ 是相机内参，$h$ 是一个点经过超表面后落到 CMOS 上形成的点扩散函数（PSF），$Y_{\mathrm{CMOS}}$ 是超表面相机观测图像，$\hat D$ 是恢复出的深度图。
+
+第一阶段建议采用单波长窄带模型：
+\begin{equation}
+  \lambda=\lambda_0,
+\end{equation}
+即实际系统在超表面前放置窄带滤光片，仿真中只计算 $\lambda_0$ 附近的光传播。这可以显著降低 RGB 到连续光谱不可逆的问题。
+
+\section{符号定义}
+
+\begin{longtable}{p{3.4cm}p{10.4cm}}
+\toprule
+符号 & 含义 \\
+\midrule
+\endhead
+$I_{\mathrm{rgb}}(x,y)$ & 输入 RGB 图像，像素坐标为 $(x,y)$。 \\
+$I_c(x,y)$ & RGB 第 $c$ 个通道，$c\in\{R,G,B\}$。 \\
+$I_c^{\mathrm{lin}}(x,y)$ & 线性光强域的 RGB 通道。 \\
+$D(x,y)$ & 深度图。可表示 optical-axis depth 或 range depth，必须按数据集定义确认。 \\
+$K$ & 相机内参矩阵。 \\
+$f_x,f_y$ & 以像素为单位的水平、垂直焦距。 \\
+$c_x,c_y$ & 主点坐标。 \\
+$\alpha_x,\alpha_y$ & 像素对应光线的水平、垂直入射角。 \\
+$\lambda$ & 波长。第一阶段固定为 $\lambda_0$。 \\
+$k$ & 波数，$k=2\pi/\lambda$。 \\
+$(x_m,y_m)$ & 超表面平面坐标。 \\
+$(x_i,y_i)$ 或 $(u,v)$ & CMOS 平面坐标。 \\
+$d$ & 超表面到 CMOS 的传播距离。 \\
+$P(x_m,y_m)$ & 超表面孔径函数。 \\
+$t_\phi(x_m,y_m,\lambda)$ & 超表面复透射函数。 \\
+$\phi(x_m,y_m,\lambda)$ & 超表面相位分布。 \\
+$U_{\mathrm{in}}$ & 入射到超表面的复振幅。 \\
+$U_0$ & 经过超表面调制后的复振幅。 \\
+$U_i$ & 到达 CMOS 平面的复振幅。 \\
+$h$ & 点扩散函数 PSF，$h=|U_i|^2$。 \\
+$Y(u,v)$ & CMOS 上理想光强或期望响应。 \\
+$\tilde Y(u,v)$ & 加噪声和量化后的 CMOS 数字图像。 \\
+$\bm\mu$ & 观测图像的均值向量。 \\
+$\bm\Sigma$ & 噪声协方差矩阵。 \\
+$\bm F$ & Fisher information matrix。 \\
+$\mathcal I_z$ & 对深度 $z$ 的 Fisher information。 \\
+\bottomrule
+\end{longtable}
+
+\section{相机内参：像素如何变成光线方向}
+
+\subsection{针孔相机模型}
+
+相机内参矩阵为：
+\begin{equation}
+  K=
+  \begin{bmatrix}
+  f_x&0&c_x\\
+  0&f_y&c_y\\
+  0&0&1
+  \end{bmatrix}.
+\end{equation}
+
+三维点 $(X,Y,Z)$ 投影到像素 $(x,y)$：
+\begin{equation}
+  x=f_x\frac{X}{Z}+c_x,\qquad
+  y=f_y\frac{Y}{Z}+c_y.
+\end{equation}
+
+反过来，像素坐标对应的相机光线方向为：
+\begin{equation}
+  \bm r(x,y)
+  =
+  K^{-1}
+  \begin{bmatrix}
+  x\\y\\1
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+  \frac{x-c_x}{f_x}\\
+  \frac{y-c_y}{f_y}\\
+  1
+  \end{bmatrix}.
+\end{equation}
+
+单位方向向量为：
+\begin{equation}
+  \hat{\bm r}(x,y)
+  =
+  \frac{\bm r(x,y)}{\|\bm r(x,y)\|}.
+\end{equation}
+
+对应视场角为：
+\begin{equation}
+  \alpha_x(x,y)=
+  \arctan\left(\frac{x-c_x}{f_x}\right),
+  \qquad
+  \alpha_y(x,y)=
+  \arctan\left(\frac{y-c_y}{f_y}\right).
+\end{equation}
+
+这一步的意义是：
+\begin{quote}
+将图像像素坐标转换成进入超表面的物理入射方向。PSF 在大视场下依赖 $\alpha_x,\alpha_y$，因此这一步不能省略。
+\end{quote}
+
+\subsection{深度图如何变成三维点}
+
+若深度图 $D(x,y)$ 是 optical-axis depth，即相机坐标的 $Z$，则：
+\begin{equation}
+  \bm P(x,y)
+  =
+  D(x,y)
+  \begin{bmatrix}
+  \frac{x-c_x}{f_x}\\
+  \frac{y-c_y}{f_y}\\
+  1
+  \end{bmatrix}.
+\end{equation}
+即：
+\begin{equation}
+  X=D(x,y)\frac{x-c_x}{f_x},\quad
+  Y=D(x,y)\frac{y-c_y}{f_y},\quad
+  Z=D(x,y).
+\end{equation}
+
+若深度图是 range depth，即从相机中心到点的欧氏距离 $D_r(x,y)$，则：
+\begin{equation}
+  \bm P(x,y)=D_r(x,y)\hat{\bm r}(x,y).
+\end{equation}
+
+两者关系为：
+\begin{equation}
+  D_r=
+  D_z
+  \sqrt{
+  \left(\frac{x-c_x}{f_x}\right)^2+
+  \left(\frac{y-c_y}{f_y}\right)^2+
+  1
+  },
+  \qquad
+  D_z=D_r\hat r_z .
+\end{equation}
+
+\section{RGB 图像如何近似为超表面前的入射强度}
+
+\subsection{sRGB 到线性光强}
+
+普通图像通常是非线性的 sRGB。若原始像素为 $I_c^{8bit}(x,y)\in[0,255]$，先归一化：
+\begin{equation}
+  I_c^s(x,y)=\frac{I_c^{8bit}(x,y)}{255}.
+\end{equation}
+
+简化的 inverse gamma 近似为：
+\begin{equation}
+  I_c^{\mathrm{lin}}(x,y)=\left(I_c^s(x,y)\right)^{2.2}.
+\end{equation}
+
+更标准的 sRGB inverse gamma 为：
+\begin{equation}
+I_c^{\mathrm{lin}}=
+\begin{cases}
+\frac{I_c^s}{12.92}, & I_c^s\le 0.04045,\\
+\left(\frac{I_c^s+0.055}{1.055}\right)^{2.4}, & I_c^s>0.04045.
+\end{cases}
+\end{equation}
+
+\subsection{为什么 RGB 不能唯一恢复连续光谱}
+
+真实光谱强度可写为 $L(x,y,\lambda)$。普通 RGB 通道本质上是连续光谱经相机光谱响应积分后的结果：
+\begin{equation}
+  I_R(x,y)=\int L(x,y,\lambda)Q_R(\lambda)d\lambda,
+\end{equation}
+\begin{equation}
+  I_G(x,y)=\int L(x,y,\lambda)Q_G(\lambda)d\lambda,
+\end{equation}
+\begin{equation}
+  I_B(x,y)=\int L(x,y,\lambda)Q_B(\lambda)d\lambda.
+\end{equation}
+
+已知三个积分值 $I_R,I_G,I_B$，无法唯一恢复连续函数 $L(\lambda)$。因此 RGB-D 数据不能完整变成真实自然光场，只能做建模近似。
+
+\subsection{单波长窄带近似}
+
+若系统在超表面前加入中心波长 $\lambda_0$ 的窄带滤光片，则可近似：
+\begin{equation}
+  L(x,y,\lambda)\approx S(x,y;\lambda_0)\delta(\lambda-\lambda_0).
+\end{equation}
+
+若 $\lambda_0$ 位于绿光附近，例如 $\lambda_0\approx 550$ nm，则第一版可用绿色通道近似该波长强度：
+\begin{equation}
+  S(x,y;\lambda_0)\approx \beta I_G^{\mathrm{lin}}(x,y).
+\end{equation}
+其中 $\beta$ 表示滤光片和系统透过率导致的光通量缩放。理论验证阶段可先令 $\beta=1$。
+
+\subsection{RGB 三代表波长近似}
+
+若不做单波长近似，可设：
+\begin{equation}
+  \lambda_R\approx 620\,\mathrm{nm},\quad
+  \lambda_G\approx 550\,\mathrm{nm},\quad
+  \lambda_B\approx 460\,\mathrm{nm}.
+\end{equation}
+
+用三条谱线近似 RGB：
+\begin{equation}
+  L(x,y,\lambda)
+  \approx
+  I_R^{\mathrm{lin}}(x,y)\delta(\lambda-\lambda_R)
+  +I_G^{\mathrm{lin}}(x,y)\delta(\lambda-\lambda_G)
+  +I_B^{\mathrm{lin}}(x,y)\delta(\lambda-\lambda_B).
+\end{equation}
+
+第一阶段建议优先使用单波长窄带模型，因为其物理和实验对应最清晰。
+
+\section{一个点源经过超表面形成 PSF 的推导}
+
+\subsection{系统几何}
+
+设超表面位于 $z=0$ 平面，坐标为 $(x_m,y_m)$。CMOS 位于 $z=d$ 平面，坐标为 $(x_i,y_i)$。点源位于超表面前方，深度为 $z_o$，视场角为 $\alpha_x,\alpha_y$，则点源坐标可近似写为：
+\begin{equation}
+  X_o=z_o\tan\alpha_x,\qquad
+  Y_o=z_o\tan\alpha_y,\qquad
+  Z_o=-z_o.
+\end{equation}
+
+点源到超表面上一点的距离为：
+\begin{equation}
+  R_o(x_m,y_m)
+  =
+  \sqrt{
+  (x_m-X_o)^2+
+  (y_m-Y_o)^2+
+  z_o^2
+  }.
+\end{equation}
+代入角度参数：
+\begin{equation}
+  R_o(x_m,y_m)
+  =
+  \sqrt{
+  (x_m-z_o\tan\alpha_x)^2+
+  (y_m-z_o\tan\alpha_y)^2+
+  z_o^2
+  }.
+\end{equation}
+
+\subsection{点源到达超表面的入射场}
+
+点源在超表面处产生球面波：
+\begin{equation}
+  U_{\mathrm{in}}(x_m,y_m)
+  =
+  A_o
+  \frac{
+  \exp\left[i k R_o(x_m,y_m)\right]
+  }{
+  R_o(x_m,y_m)
+  },
+  \qquad k=\frac{2\pi}{\lambda}.
+\end{equation}
+
+远距离近似下，可展开为平面波角度项加球面曲率项：
+\begin{equation}
+  U_{\mathrm{in}}(x_m,y_m)
+  \approx
+  A_o
+  \exp
+  \left[
+  ik
+  \left(
+  x_m\sin\alpha_x+
+  y_m\sin\alpha_y+
+  \frac{x_m^2+y_m^2}{2z_o}
+  \right)
+  \right].
+\end{equation}
+其中线性项对应入射角，二次项对应有限距离带来的波前曲率。长距离深度困难的根源是：
+\begin{equation}
+  \frac{x_m^2+y_m^2}{2z_o}
+\end{equation}
+随 $z_o$ 变远而迅速变弱。
+
+\subsection{超表面复透射}
+
+标量模型下，超表面复透射函数为：
+\begin{equation}
+  t_\phi(x_m,y_m,\lambda)
+  =
+  A_\phi(x_m,y_m,\lambda)
+  \exp[i\phi(x_m,y_m,\lambda)].
+\end{equation}
+
+孔径函数为：
+\begin{equation}
+  P(x_m,y_m)=
+  \begin{cases}
+  1,&(x_m,y_m)\in\Omega,\\
+  0,&\text{otherwise}.
+  \end{cases}
+\end{equation}
+
+经过超表面后的场为：
+\begin{equation}
+  U_0(x_m,y_m)
+  =
+  P(x_m,y_m)
+  t_\phi(x_m,y_m,\lambda)
+  U_{\mathrm{in}}(x_m,y_m).
+\end{equation}
+
+\subsection{从超表面传播到 CMOS}
+
+超表面到 CMOS 的 Fresnel 传播为：
+\begin{equation}
+  U_i(x_i,y_i)
+  =
+  \frac{\exp(ikd)}{i\lambda d}
+  \iint
+  U_0(x_m,y_m)
+  \exp
+  \left[
+  i\frac{k}{2d}
+  \left(
+  (x_i-x_m)^2+
+  (y_i-y_m)^2
+  \right)
+  \right]
+  dx_mdy_m.
+\end{equation}
+
+代入 $U_0$：
+\begin{equation}
+\begin{aligned}
+  U_i(x_i,y_i)
+  &=
+  \frac{\exp(ikd)}{i\lambda d}
+  \iint
+  P(x_m,y_m)t_\phi(x_m,y_m,\lambda)
+  U_{\mathrm{in}}(x_m,y_m)\\
+  &\qquad\times
+  \exp
+  \left[
+  i\frac{k}{2d}
+  \left(
+  (x_i-x_m)^2+
+  (y_i-y_m)^2
+  \right)
+  \right]
+  dx_mdy_m.
+\end{aligned}
+\end{equation}
+
+\subsection{PSF 定义}
+
+CMOS 记录强度，故 PSF 为：
+\begin{equation}
+  h(x_i,y_i;z_o,\alpha_x,\alpha_y,\lambda,\phi,d)
+  =
+  |U_i(x_i,y_i)|^2.
+\end{equation}
+
+完整写为：
+\begin{equation}
+\begin{aligned}
+  h(x_i,y_i;z_o,\alpha_x,\alpha_y,\lambda,\phi,d)
+  &=
+  \left|
+  \frac{\exp(ikd)}{i\lambda d}
+  \iint
+  P(x_m,y_m)t_\phi(x_m,y_m,\lambda)
+  \frac{A_o\exp[i k R_o(x_m,y_m)]}{R_o(x_m,y_m)}
+  \right.\\
+  &\qquad\left.
+  \times
+  \exp
+  \left[
+  i\frac{k}{2d}
+  \left(
+  (x_i-x_m)^2+
+  (y_i-y_m)^2
+  \right)
+  \right]
+  dx_mdy_m
+  \right|^2 .
+\end{aligned}
+\end{equation}
+
+也可用传播算子简写为：
+\begin{equation}
+  h=
+  \left|
+  \mathcal P_d
+  \left\{
+  P\,t_\phi\,U_{\mathrm{in}}
+  \right\}
+  \right|^2.
+\end{equation}
+
+\subsection{角谱法与 FFT 计算}
+
+Fresnel 或角谱传播可写为：
+\begin{equation}
+  U_i
+  =
+  \mathcal F^{-1}
+  \left[
+  \mathcal F(U_0)\,
+  H(f_x,f_y;d)
+  \right],
+\end{equation}
+其中角谱传播函数为：
+\begin{equation}
+  H(f_x,f_y;d)
+  =
+  \exp
+  \left[
+  ikd
+  \sqrt{
+  1-(\lambda f_x)^2-(\lambda f_y)^2
+  }
+  \right].
+\end{equation}
+
+\section{超表面尺寸、周期和 CMOS 距离对 PSF 的影响}
+
+\subsection{口径决定长距离深度敏感性}
+
+设超表面孔径半径为 $a$。远距离下，深度引起的孔径边缘相位量级为：
+\begin{equation}
+  \Phi_z\sim k\frac{a^2}{2z}.
+\end{equation}
+
+两个深度 $z$ 和 $z+\Delta z$ 的波前相位差约为：
+\begin{equation}
+  \Delta\Phi
+  \approx
+  k\frac{a^2}{2}
+  \left|
+  \frac{1}{z}-\frac{1}{z+\Delta z}
+  \right|
+  \approx
+  k\frac{a^2\Delta z}{2z^2}.
+\end{equation}
+
+因此：
+\begin{equation}
+  \Delta\Phi\propto \frac{a^2}{\lambda}\frac{\Delta z}{z^2}.
+\end{equation}
+
+结论是：口径越大，长距离深度信息越强；距离越远，深度信息按 $1/z^2$ 快速减弱。
+
+\subsection{周期数决定相位表达能力}
+
+若超表面周期为 $p$，孔径直径为 $D_{\mathrm{ap}}=2a$，则单元数约为：
+\begin{equation}
+  N_{\mathrm{cell}}
+  \approx
+  \left(\frac{D_{\mathrm{ap}}}{p}\right)^2.
+\end{equation}
+
+周期太少时，相位图采样过粗，无法表达复杂编码；周期太大时可能出现高阶衍射。粗略要求为：
+\begin{equation}
+  p<
+  \frac{\lambda}{n_{\mathrm{env}}(1+\sin\alpha_{\max})}.
+\end{equation}
+
+\subsection{超表面到 CMOS 距离是系统变量}
+
+PSF 显式依赖传播距离 $d$：
+\begin{equation}
+  h=
+  \left|
+  \mathcal P_d
+  \left[
+  P t_\phi U_{\mathrm{in}}
+  \right]
+  \right|^2.
+\end{equation}
+
+因此 $d$ 改变会直接改变 PSF。$d$ 太小，编码可能未充分展开；$d$ 太大，PSF 可能过大、光能分散、SNR 下降。理论上可将 $d$ 也纳入优化：
+\begin{equation}
+  \phi^\star,d^\star
+  =
+  \arg\max_{\phi,d}
+  \mathbb E_{z,\alpha}
+  \left[
+  \log \mathcal I_z^{\mathrm{eff}}(z,\alpha;\phi,d)
+  \right].
+\end{equation}
+
+\section{从 RGB-D 到 CMOS 整图响应}
+
+\subsection{每个像素作为一个小点源}
+
+单波长窄带模型下，RGB-D 图被近似为许多小点源集合：
+\begin{equation}
+  (x,y)
+  \mapsto
+  \left\{
+  S(x,y;\lambda_0),\,
+  D(x,y),\,
+  \alpha_x(x,y),\,
+  \alpha_y(x,y)
+  \right\}.
+\end{equation}
+
+其中：
+\begin{equation}
+  S(x,y;\lambda_0)\approx I_G^{\mathrm{lin}}(x,y).
+\end{equation}
+
+\subsection{通用空间变化成像公式}
+
+一个场景像素 $(x,y)$ 对 CMOS 像素 $(u,v)$ 的贡献为：
+\begin{equation}
+  dY_{x,y\rightarrow u,v}
+  =
+  S(x,y;\lambda_0)
+  h_{\lambda_0}
+  \left(
+  u,v;
+  x,y,
+  D(x,y),
+  \alpha_x(x,y),
+  \alpha_y(x,y)
+  \right).
+\end{equation}
+
+所有像素叠加：
+\begin{equation}
+\boxed{
+  Y(u,v)
+  =
+  \sum_x\sum_y
+  S(x,y;\lambda_0)
+  h_{\lambda_0}
+  \left(
+  u,v;
+  x,y,
+  D(x,y),
+  \alpha_x(x,y),
+  \alpha_y(x,y)
+  \right).
+}
+\end{equation}
+
+代入绿色通道近似：
+\begin{equation}
+\boxed{
+  Y(u,v)
+  =
+  \sum_x\sum_y
+  I_G^{\mathrm{lin}}(x,y)
+  h_{\lambda_0}
+  \left(
+  u,v;
+  x,y,
+  D(x,y),
+  \alpha_x(x,y),
+  \alpha_y(x,y)
+  \right).
+}
+\end{equation}
+
+\subsection{局部平移不变近似}
+
+若近似认为 PSF 只依赖相对位置：
+\begin{equation}
+  h_{\lambda_0}(u,v;x,y,D,\alpha_x,\alpha_y)
+  =
+  h_{\lambda_0}(u-x,v-y;D,\alpha_x,\alpha_y),
+\end{equation}
+则：
+\begin{equation}
+  Y(u,v)
+  =
+  \sum_x\sum_y
+  I_G^{\mathrm{lin}}(x,y)
+  h_{\lambda_0}
+  \left(
+  u-x,v-y;
+  D(x,y),
+  \alpha_x(x,y),
+  \alpha_y(x,y)
+  \right).
+\end{equation}
+
+\subsection{深度分层卷积近似}
+
+将深度离散为：
+\begin{equation}
+  z_1,z_2,\ldots,z_K.
+\end{equation}
+
+定义软深度 mask：
+\begin{equation}
+  M_k(x,y)
+  =
+  \frac{
+  \exp\left[-\frac{(D(x,y)-z_k)^2}{2\sigma_z^2}\right]
+  }{
+  \sum_{j=1}^{K}
+  \exp\left[-\frac{(D(x,y)-z_j)^2}{2\sigma_z^2}\right]
+  }.
+\end{equation}
+满足：
+\begin{equation}
+  \sum_{k=1}^{K}M_k(x,y)=1.
+\end{equation}
+
+第 $k$ 个深度层图像：
+\begin{equation}
+  S_k(x,y)=M_k(x,y)I_G^{\mathrm{lin}}(x,y).
+\end{equation}
+
+若第 $k$ 层 PSF 为 $h_k(u,v)=h(u,v;z_k,\lambda_0)$，则：
+\begin{equation}
+  Y_k(u,v)=(h_k*S_k)(u,v).
+\end{equation}
+
+所有层相加：
+\begin{equation}
+\boxed{
+  Y(u,v)
+  =
+  \sum_{k=1}^{K}
+  \left[
+  h_k*
+  \left(
+  M_k I_G^{\mathrm{lin}}
+  \right)
+  \right](u,v).
+}
+\end{equation}
+
+展开为：
+\begin{equation}
+\boxed{
+  Y(u,v)
+  =
+  \sum_{k=1}^{K}
+  \sum_x\sum_y
+  M_k(x,y)
+  I_G^{\mathrm{lin}}(x,y)
+  h_k(u-x,v-y).
+}
+\end{equation}
+
+\subsection{RGB 三波长整图响应}
+
+若采用 RGB 三代表波长近似，则：
+\begin{equation}
+  Y(u,v)
+  =
+  \sum_{c\in\{R,G,B\}}
+  \sum_x\sum_y
+  I_c^{\mathrm{lin}}(x,y)
+  h_{\lambda_c}
+  \left(
+  u,v;
+  x,y,
+  D(x,y),
+  \alpha_x(x,y),
+  \alpha_y(x,y)
+  \right).
+\end{equation}
+
+分层形式：
+\begin{equation}
+  Y(u,v)
+  =
+  \sum_{c\in\{R,G,B\}}
+  \sum_{k=1}^{K}
+  \left[
+  h_{k,c}*
+  \left(
+  M_k I_c^{\mathrm{lin}}
+  \right)
+  \right](u,v),
+\end{equation}
+其中：
+\begin{equation}
+  h_{k,c}=h(u,v;z_k,\lambda_c).
+\end{equation}
+
+\subsection{CMOS 噪声与量化}
+
+设曝光和增益合并为 $g$，理想光强 $Y(u,v)$ 对应期望电子数：
+\begin{equation}
+  \mu(u,v)=gY(u,v).
+\end{equation}
+
+泊松光子噪声：
+\begin{equation}
+  Y_{\mathrm{shot}}(u,v)\sim
+  \mathrm{Poisson}(\mu(u,v)).
+\end{equation}
+
+读出噪声：
+\begin{equation}
+  n_r(u,v)\sim \mathcal N(0,\sigma_r^2).
+\end{equation}
+
+最终数字图像：
+\begin{equation}
+  \tilde Y(u,v)
+  =
+  Q\left[
+  \mathrm{Poisson}(gY(u,v))+n_r(u,v)
+  \right],
+\end{equation}
+其中 $Q[\cdot]$ 表示 ADC、裁剪和量化。
+
+\section{PSF-level Fisher 信息推导}
+
+\subsection{单参数深度估计}
+
+对于一个点源，观测向量为：
+\begin{equation}
+  \bm y=
+  a\bm h(z,\alpha;\phi)+\bm n,
+\end{equation}
+其中 $a$ 是亮度，$\bm h$ 是拉平后的 PSF，噪声为：
+\begin{equation}
+  \bm n\sim\mathcal N(0,\sigma^2\bm I).
+\end{equation}
+
+均值：
+\begin{equation}
+  \bm\mu(z)=a\bm h(z,\alpha;\phi).
+\end{equation}
+
+高斯噪声下，标量参数 $z$ 的 Fisher information 为：
+\begin{equation}
+  \mathcal I_z
+  =
+  \left(\frac{\partial\bm\mu}{\partial z}\right)^T
+  \bm\Sigma^{-1}
+  \left(\frac{\partial\bm\mu}{\partial z}\right).
+\end{equation}
+
+当 $\bm\Sigma=\sigma^2\bm I$：
+\begin{equation}
+\boxed{
+  \mathcal I_z^{\mathrm{psf}}
+  =
+  \frac{a^2}{\sigma^2}
+  \left\|
+  \frac{\partial\bm h(z,\alpha;\phi)}{\partial z}
+  \right\|^2 .
+}
+\end{equation}
+
+对应 CRLB：
+\begin{equation}
+  \mathrm{Var}(\hat z)\ge
+  \frac{1}{\mathcal I_z^{\mathrm{psf}}}.
+\end{equation}
+
+\subsection{多参数 nuisance-aware Fisher}
+
+真实中深度、角度、亮度可能混淆。设：
+\begin{equation}
+  \bm\theta=
+  \begin{bmatrix}
+  z\\
+  \alpha\\
+  a
+  \end{bmatrix}.
+\end{equation}
+
+Jacobian：
+\begin{equation}
+  \bm J=
+  \frac{\partial\bm\mu}{\partial\bm\theta}
+  =
+  \begin{bmatrix}
+  \frac{\partial\bm\mu}{\partial z}&
+  \frac{\partial\bm\mu}{\partial\alpha}&
+  \frac{\partial\bm\mu}{\partial a}
+  \end{bmatrix}.
+\end{equation}
+
+其中：
+\begin{equation}
+  \frac{\partial\bm\mu}{\partial z}
+  =
+  a\frac{\partial\bm h}{\partial z},\quad
+  \frac{\partial\bm\mu}{\partial\alpha}
+  =
+  a\frac{\partial\bm h}{\partial\alpha},\quad
+  \frac{\partial\bm\mu}{\partial a}
+  =
+  \bm h.
+\end{equation}
+
+Fisher matrix：
+\begin{equation}
+  \bm F=\bm J^T\bm\Sigma^{-1}\bm J.
+\end{equation}
+
+若 $\bm\theta=[z,\bm\eta^T]^T$，其中 $\bm\eta$ 是干扰参数，则分块：
+\begin{equation}
+  \bm F=
+  \begin{bmatrix}
+  F_{zz}&\bm F_{z\eta}\\
+  \bm F_{\eta z}&\bm F_{\eta\eta}
+  \end{bmatrix}.
+\end{equation}
+
+只关心深度时，有效 Fisher 为 Schur complement：
+\begin{equation}
+\boxed{
+  \mathcal I_z^{\mathrm{eff}}
+  =
+  F_{zz}
+  -
+  \bm F_{z\eta}
+  \bm F_{\eta\eta}^{-1}
+  \bm F_{\eta z}.
+}
+\end{equation}
+
+该式表示：从总深度敏感性中扣除与角度、亮度、波长等干扰参数混淆的部分。
+
+\subsection{泊松噪声下的 Fisher}
+
+若 CMOS 光子计数近似：
+\begin{equation}
+  y_i\sim\mathrm{Poisson}(\mu_i(\bm\theta)),
+\end{equation}
+则：
+\begin{equation}
+\boxed{
+  F_{jk}
+  =
+  \sum_i
+  \frac{1}{\mu_i}
+  \frac{\partial\mu_i}{\partial\theta_j}
+  \frac{\partial\mu_i}{\partial\theta_k}.
+}
+\end{equation}
+
+只估计深度：
+\begin{equation}
+\boxed{
+  \mathcal I_z
+  =
+  \sum_i
+  \frac{1}{\mu_i}
+  \left(
+  \frac{\partial\mu_i}{\partial z}
+  \right)^2 .
+}
+\end{equation}
+
+这说明 PSF 变化大有用，但光强过低会因 photon noise 降低有效信息。
+
+\section{Image-level Fisher 信息推导}
+
+\subsection{整图观测模型}
+
+将 CMOS 图像拉平成向量：
+\begin{equation}
+  \bm y\in\mathbb R^N.
+\end{equation}
+将深度图拉平成：
+\begin{equation}
+  \bm D=[D_1,D_2,\ldots,D_M]^T.
+\end{equation}
+给定 RGB 图 $\bm X$，超表面编码图均值为：
+\begin{equation}
+  \bm\mu(\bm D,\bm X;\phi)=\mathcal H_\phi(\bm X,\bm D).
+\end{equation}
+观测模型：
+\begin{equation}
+  \bm y=
+  \bm\mu(\bm D,\bm X;\phi)+\bm n,\qquad
+  \bm n\sim\mathcal N(0,\sigma^2\bm I).
+\end{equation}
+
+\subsection{均值函数的离散形式}
+
+令 $j$ 表示输入场景像素，$i$ 表示 CMOS 像素。则：
+\begin{equation}
+  \mu_i(\bm D,\bm X;\phi)
+  =
+  \sum_{j=1}^{M}
+  X_j
+  h_i(j,D_j;\phi).
+\end{equation}
+
+这里 $h_i(j,D_j;\phi)$ 表示第 $j$ 个场景点对第 $i$ 个 CMOS 像素的 PSF 贡献。
+
+\subsection{深度图 Fisher matrix}
+
+Jacobian：
+\begin{equation}
+  \bm J_D=
+  \frac{\partial\bm\mu}{\partial\bm D},
+  \qquad
+  [\bm J_D]_{ij}
+  =
+  \frac{\partial\mu_i}{\partial D_j}.
+\end{equation}
+
+由：
+\begin{equation}
+  \mu_i=
+  \sum_{j=1}^{M}
+  X_j h_i(j,D_j;\phi)
+\end{equation}
+得：
+\begin{equation}
+\boxed{
+  [\bm J_D]_{ij}
+  =
+  X_j
+  \frac{\partial h_i(j,D_j;\phi)}{\partial D_j}.
+}
+\end{equation}
+
+高斯噪声下整图 Fisher：
+\begin{equation}
+\boxed{
+  \bm F_D^{\mathrm{img}}
+  =
+  \bm J_D^T
+  \bm\Sigma^{-1}
+  \bm J_D.
+}
+\end{equation}
+
+若 $\bm\Sigma=\sigma^2\bm I$：
+\begin{equation}
+\boxed{
+  \bm F_D^{\mathrm{img}}
+  =
+  \frac{1}{\sigma^2}
+  \bm J_D^T\bm J_D.
+}
+\end{equation}
+
+元素展开：
+\begin{equation}
+  F_{pq}
+  =
+  \frac{1}{\sigma^2}
+  \sum_i
+  \frac{\partial\mu_i}{\partial D_p}
+  \frac{\partial\mu_i}{\partial D_q}.
+\end{equation}
+
+代入：
+\begin{equation}
+\boxed{
+  F_{pq}
+  =
+  \frac{X_pX_q}{\sigma^2}
+  \sum_i
+  \frac{\partial h_i(p,D_p;\phi)}{\partial D_p}
+  \frac{\partial h_i(q,D_q;\phi)}{\partial D_q}.
+}
+\end{equation}
+
+\subsection{为什么 image-level Fisher 更真实}
+
+PSF-level Fisher 只关心点源：
+\begin{equation}
+  \frac{\partial\bm h}{\partial z}.
+\end{equation}
+Image-level Fisher 关心：
+\begin{equation}
+  \frac{\partial\bm\mu}{\partial D_j},
+\end{equation}
+即一个场景像素的深度变化会怎样改变整张 CMOS 图像。它包含亮度、纹理、PSF 重叠、低纹理区域、遮挡边界和自然图像叠加效应，因此更接近最终任务。
+
+\subsection{实际可计算近似}
+
+完整 $\bm F_D$ 维度巨大，实际可用以下近似。
+
+\paragraph{对角 Fisher}
+只看每个像素深度自身的信息：
+\begin{equation}
+  F_{jj}
+  =
+  \frac{1}{\sigma^2}
+  \left\|
+  \frac{\partial\bm\mu}{\partial D_j}
+  \right\|^2.
+\end{equation}
+代入：
+\begin{equation}
+  F_{jj}
+  =
+  \frac{X_j^2}{\sigma^2}
+  \left\|
+  \frac{\partial\bm h(j,D_j;\phi)}{\partial D_j}
+  \right\|^2.
+\end{equation}
+
+\paragraph{Patch-level Fisher}
+在局部 patch 内，用低维参数描述深度，例如平面：
+\begin{equation}
+  D_j(a,b,c)=a x_j+b y_j+c.
+\end{equation}
+参数为 $\bm\theta=[a,b,c]^T$。局部 Fisher：
+\begin{equation}
+  \bm F_\Omega=
+  \bm J_\Omega^T\bm\Sigma^{-1}\bm J_\Omega.
+\end{equation}
+
+\paragraph{Depth-bin Fisher}
+将图像分成深度层：
+\begin{equation}
+  \bm\mu=
+  \sum_{k=1}^{K}
+  \bm H_k(\phi)\bm s_k,
+\end{equation}
+其中 $\bm s_k=M_k(\bm D)\odot\bm X$。可以分析不同深度层响应之间的相关性，避免不同深度层编码过于相似。
+
+\section{优化目标整理}
+
+\subsection{PSF-level 信息优化}
+
+单纯最大化深度敏感性：
+\begin{equation}
+  \phi^\star
+  =
+  \arg\max_\phi
+  \mathbb E_{z,\alpha}
+  \left[
+  \log
+  \mathcal I_z^{\mathrm{psf}}(z,\alpha;\phi)
+  \right].
+\end{equation}
+
+考虑干扰参数：
+\begin{equation}
+\boxed{
+  \phi^\star
+  =
+  \arg\max_\phi
+  \mathbb E_{z,\alpha}
+  \left[
+  \log
+  \mathcal I_z^{\mathrm{eff}}(z,\alpha;\phi)
+  \right].
+}
+\end{equation}
+
+强调长距离和边缘视场最坏情况：
+\begin{equation}
+\boxed{
+  \phi^\star
+  =
+  \arg\max_\phi
+  \min_{z\in\mathcal Z,\alpha\in\mathcal A}
+  \mathcal I_z^{\mathrm{eff}}(z,\alpha;\phi).
+}
+\end{equation}
+
+\subsection{Image-level Fisher 优化}
+
+对整图或 patch 近似：
+\begin{equation}
+  \mathcal L_{\mathrm{imgFI}}
+  =
+  -
+  \mathbb E_{(\bm X,\bm D)}
+  \left[
+  \sum_j
+  w_j
+  \log
+  \left(
+  \left\|
+  \frac{\partial\bm\mu_\phi}{\partial D_j}
+  \right\|^2
+  +
+  \epsilon
+  \right)
+  \right].
+\end{equation}
+
+联合 PSF 与图像级目标：
+\begin{equation}
+  \phi^\star
+  =
+  \arg\min_\phi
+  \left[
+  \lambda_{\mathrm{psf}}\mathcal L_{\mathrm{psf}}
+  +
+  \lambda_{\mathrm{img}}\mathcal L_{\mathrm{imgFI}}
+  +
+  \lambda_{\mathrm{fab}}\mathcal L_{\mathrm{fab}}
+  \right].
+\end{equation}
+
+\subsection{恢复网络训练}
+
+优化得到相位 $\phi^\star$ 后，生成超表面编码图：
+\begin{equation}
+  \bm Y_{\phi^\star}
+  =
+  \mathcal H_{\phi^\star}(\bm X,\bm D).
+\end{equation}
+
+训练深度恢复网络：
+\begin{equation}
+  \hat{\bm D}
+  =
+  f_\psi(\bm X,\bm Y_{\phi^\star},\bm R_{\mathrm{ray}}),
+\end{equation}
+其中 $\bm R_{\mathrm{ray}}$ 是每个像素的光线方向或视场角编码。
+
+监督损失：
+\begin{equation}
+  \mathcal L_{\mathrm{depth}}
+  =
+  \|M\odot(\hat{\bm D}-\bm D)\|_1.
+\end{equation}
+
+可加入梯度损失：
+\begin{equation}
+  \mathcal L_{\mathrm{grad}}
+  =
+  \|\nabla\hat{\bm D}-\nabla\bm D\|_1.
+\end{equation}
+
+若使用 Depth Anything V2 等 teacher，可加入蒸馏：
+\begin{equation}
+  \mathcal L_{\mathrm{distill}}
+  =
+  \left\|
+  \mathrm{SSI}(\hat{\bm D})
+  -
+  \mathrm{SSI}(\bm D_T)
+  \right\|_1.
+\end{equation}
+
+最终训练：
+\begin{equation}
+  \psi^\star
+  =
+  \arg\min_\psi
+  \left[
+  \lambda_1\mathcal L_{\mathrm{depth}}
+  +
+  \lambda_2\mathcal L_{\mathrm{grad}}
+  +
+  \lambda_3\mathcal L_{\mathrm{distill}}
+  \right].
+\end{equation}
+
+\section{推荐实施顺序}
+
+\begin{enumerate}
+  \item 固定单波长 $\lambda_0$、孔径 $D_{\mathrm{ap}}$、超表面-CMOS 距离 $d$、像素尺寸和目标深度范围。
+  \item 实现点源 PSF 计算：
+  \begin{equation}
+    h=
+    \left|
+    \mathcal P_d
+    \left[
+    P t_\phi U_{\mathrm{in}}
+    \right]
+    \right|^2.
+  \end{equation}
+  \item 计算 $\mathcal I_z^{\mathrm{psf}}$ 和 $\mathcal I_z^{\mathrm{eff}}$，画出 CRLB 随距离和视场角变化图。
+  \item 用低维相位参数化：
+  \begin{equation}
+    \phi(x,y)=\sum_m c_m B_m(x,y),
+  \end{equation}
+  优化系数 $\bm c$。
+  \item 扫描口径 $D_{\mathrm{ap}}$ 和传播距离 $d$，画 feasibility map。
+  \item 用 RGB-D 数据和分层 PSF 公式生成超表面编码图：
+  \begin{equation}
+    Y=
+    \sum_k
+    h_k*(M_kI_G^{\mathrm{lin}}).
+  \end{equation}
+  \item 训练小型 decoder 或基于 Depth Anything V2 的 prompt/fine-tuning 网络。
+  \item 做严格消融：普通透镜、随机相位、人工旋转/DH PSF、Fisher 相位、Fisher+image-level 相位。
+  \item 后续再引入相位量化、透过率、RCWA meta-atom library、偏振和宽谱响应。
+\end{enumerate}
+
+\section{一句话总结}
+
+本项目的公式主线是：
+\begin{equation}
+\begin{aligned}
+  \text{像素}&\xrightarrow{K^{-1}}\text{光线方向},\\
+  \text{RGB}&\xrightarrow{\mathrm{linearize}}\text{入射强度},\\
+  \text{点源}&\xrightarrow{P t_\phi+\mathcal P_d}\text{PSF},\\
+  \text{整图}&\xrightarrow{\sum \text{PSF splatting}}\text{CMOS 图},\\
+  \text{Fisher}&\xrightarrow{\max}\text{信息最优相位}.
+\end{aligned}
+\end{equation}
+
+最值得坚持的核心不是简单 ``设计一个特殊 PSF''，而是：
+\begin{quote}
+用 Fisher/CRLB 在物理测量层面优化 CMOS 图像对深度的有效可观测性，再用深度学习模型从这个更有信息的物理编码图中恢复 metric depth。
+\end{quote}
+
+\end{document}

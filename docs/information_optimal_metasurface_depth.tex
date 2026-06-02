@@ -1,0 +1,965 @@
+\documentclass[11pt,a4paper,fontset=none]{ctexart}
+
+\usepackage[margin=2.35cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{caption}
+
+\setCJKmainfont{Songti SC}
+\setCJKsansfont{PingFang SC}
+\setCJKmonofont{PingFang SC}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\setlist[itemize]{leftmargin=1.7em}
+\setlist[enumerate]{leftmargin=1.9em}
+
+\title{\bfseries 面向长距离、大视角、高精度、自然光复杂真实场景的\\超表面深度重建策略}
+\author{项目研究构想整理}
+\date{2026年5月}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\begin{abstract}
+本文整理一个面向长距离、大视角、高精度、自然光复杂真实场景的超表面深度重建研究方案。核心思想是：不再把超表面看作某种固定的双螺旋点扩散函数、色散透镜或窄带实验器件，而是把它作为一个面向真实三维感知任务的信息最优物理编码器。我们以 Fisher information、Cramér--Rao lower bound、任务驱动互信息、贝叶斯实验设计和端到端可微成像为理论工具，反向优化超表面相位分布，使传感器编码图像在目标距离、视场范围和自然光谱条件下对深度具有最大可辨性，并尽量降低深度、视场角、光照、纹理、光谱和制造误差之间的混淆。随后结合 Depth Anything V2、ZoeDepth、Depth Pro 等深度基础模型，将信息最优的物理深度线索与语义几何先验融合，实现可标定的 metric depth 重建。本文进一步讨论适合仿真的开源数据集、实验路线、评价指标和潜在风险。
+\end{abstract}
+
+\section{问题重新定义}
+
+当前许多超表面深度成像工作已经证明了 ``超表面可以编码深度''，例如双螺旋 PSF、旋转 PSF、色散金属透镜、偏振复用金属透镜和主动结构光超表面等。然而，面向无人机、机器人或户外空间感知时，真正困难的不是在受控近距离场景中恢复深度，而是在以下约束同时存在时仍能稳定工作：
+
+\begin{itemize}
+  \item 长距离：例如 5--80 m，甚至更远；
+  \item 大视场：例如 90$^\circ$--120$^\circ$，需要覆盖大范围空间；
+  \item 高精度：不仅是相对深度结构正确，还要有可靠 metric scale；
+  \item 自然光复杂场景：宽光谱、阴影、逆光、低纹理、反光、动态物体和复杂材质；
+  \item 轻量部署：前端薄、低功耗，后端不能依赖巨大模型在线推理。
+\end{itemize}
+
+这些条件之间存在根本矛盾。长距离深度变化引起的波前曲率变化很弱，大视场会造成强烈离轴像差和空间变化 PSF，高精度需要严格标定，自然光又会引入光谱和噪声不确定性。因此，本课题的核心问题可以重新表述为：
+
+\begin{quote}
+如何设计一个对长距离宽视场深度最敏感、可标定、可制造、可与深度基础模型协同的超表面物理编码器？
+\end{quote}
+
+这一定义比 ``超表面图像送入 CNN'' 更本质。研究对象不是某个网络结构，而是三维感知任务的最优物理测量设计。
+
+\section{核心判断与研究假设}
+
+本课题的关键判断可以写成三句话。第一，纯单目深度基础模型已经很强，但 metric scale 仍然缺少物理约束，尤其在长距离、低纹理和尺度不典型场景中容易漂移。第二，传统超表面深度编码提供了真实物理线索，但许多设计只在近距离、窄视场、稀疏目标或受控照明下展示，尚未面向长距离宽视场自然场景优化。第三，若能用信息论和统计估计理论反向设计超表面相位，再用深度基础模型解码和补全，就有机会把物理可观测性与语义先验结合起来。
+
+\subsection{假设一：信息最优相位优于人工 PSF 模板}
+
+双螺旋 PSF、旋转 PSF 和色散 PSF 是重要启发，但它们不是为某个特定任务、距离范围、视场范围和噪声模型严格最优的。若把相位分布 $\phi$ 作为优化变量，并将目标写成远距离宽视场的深度信息量最大化，那么得到的相位可能不再具有简单的视觉形态，却能在统计意义上提供更高深度可辨性。
+
+\subsection{假设二：长距离需要优化最差距离而不是平均距离}
+
+若只优化平均 Fisher information，模型可能把信息集中在近距离，因为近距离本来就更容易产生明显光学变化。长距离深度重建真正困难的是远端退化。因此建议使用 max-min 或分段加权目标，例如
+\begin{equation}
+  \max_\phi
+  \sum_{b=1}^{B} w_b
+  \mathbb E_{z\in \mathcal Z_b,\alpha\in\mathcal A}
+  \left[\log \mathcal I_z^{\mathrm{eff}}(z,\alpha;\phi)\right],
+\end{equation}
+其中远距离分段给更高权重。
+
+\subsection{假设三：宽视场必须显式建模角度混淆}
+
+大视场不是把中心视场 PSF 扩展一下即可。边缘视场中，入射角变化会改变有效相位、透过率和偏振响应。若不把视场角作为 nuisance parameter 纳入 Fisher matrix，优化得到的编码可能把角度变化误当成深度变化。
+
+\subsection{假设四：最终性能需要物理目标与学习目标联合优化}
+
+Fisher/CRLB 是局部、模型化、可解释的物理指标；自然场景深度重建是全局、非线性、数据驱动的问题。二者不应二选一，而应前者约束可观测性，后者保证最终视觉任务表现。
+
+\section{与现有相关工作的逻辑关系}
+
+本课题与已有工作并非完全空白，而是建立在两条已有路线之上。
+
+\subsection{路线一：PSF 工程 + 深度网络}
+
+代表工作包括 Deep Optics、PhaseCam3D、Depth from Defocus with Learned Optics 等。这些方法的共同特点是：通过相位掩膜、DOE 或学习型孔径，制造深度相关 PSF，再用 RGB-D 仿真和深度网络完成重建。它们证明了 ``被动单目 + 光学编码 + 学习解码'' 是可行的。
+
+\subsection{路线二：超表面/金属透镜 + 被动深度感知}
+
+代表工作包括 3D Imaging Using Extreme Dispersion in Optical Metasurfaces、Monocular metasurface camera for passive single-shot 4D imaging、Nano-3D 等。这些工作说明超表面不仅能压缩 3D 信息，还能通过偏振、色散和复杂 PSF 把深度显式编码到单张图像。
+
+\subsection{本课题与 PhaseCam3D 的关系}
+
+PhaseCam3D 是最强相关前作之一，必须正面承认。它已经把相位掩膜、PSF 仿真、RGB-D 数据渲染、深度网络，以及 CRLB/Fisher 思想结合起来了。但它与本课题仍存在四个核心差异：
+
+\begin{itemize}
+  \item 它主要是普通 phase mask / coded aperture，而不是面向色散、偏振、角度响应和制造约束的超表面；
+  \item 它的 CRLB/Fisher 主要作用于深度相关 PSF 的局部敏感性和初始化，并未显式纳入大视场角度混淆、自然光宽谱、长距离 max-min 目标；
+  \item 它的训练和实验主要依赖普通 RGB-D / 近中距验证，并非面向长距离、大视角、自然光复杂真实场景；
+  \item 它的重建后端是当时的 U-Net 风格网络，而不是与深度基础模型进行物理 cue 融合。
+\end{itemize}
+
+因此，本课题不是简单重复 ``Fisher + 相位掩膜 + 深度网络''，而是将其推广为：
+\begin{quote}
+面向长距离、大视角、自然光复杂真实场景的 nuisance-aware information-optimal metasurface depth encoding framework.
+\end{quote}
+
+\section{为什么不能只优化 PSF}
+
+直观上，若点扩散函数 $h_z$ 随深度 $z$ 的变化越大，深度越容易估计。因此一个自然指标是
+\begin{equation}
+  \left\| \frac{\partial h(z;\phi)}{\partial z} \right\|,
+\end{equation}
+其中 $\phi$ 是超表面相位分布。这个指标有价值，但并不充分。
+
+真实相机拍到的并不是孤立点源的 PSF，而是不同深度、不同纹理、不同光谱、不同视场角的场景辐照度经过成像系统后的积分叠加。一个更接近真实的简化模型是
+\begin{equation}
+  \bm y =
+  \int_{\lambda}
+  \int_{z}
+  \bm H(z,\bm \alpha,\lambda;\phi)\,
+  \bm x(z,\lambda)\,dz\,d\lambda
+  + \bm n ,
+  \label{eq:image_formation}
+\end{equation}
+其中 $\bm y$ 是传感器图像，$\bm x(z,\lambda)$ 是深度层和波长相关的场景辐照度，$\bm \alpha$ 是视场角或像素光线方向，$\bm H$ 是由超表面决定的空间变化成像算子，$\bm n$ 是噪声。
+
+因此，真正要优化的不只是单点 PSF，而是最终编码图像对深度图 $\bm D$ 的可辨性：
+\begin{equation}
+  p(\bm y \mid \bm D,\bm X,\phi).
+\end{equation}
+PSF 级 Fisher information 可以作为物理设计的基础，但最终还应加入图像级和任务级目标，否则可能出现 ``单点源可分，复杂自然场景中不可分'' 的问题。
+
+\subsection{PSF 级 Fisher 与整图 Fisher 的关系}
+
+这里需要特别澄清一个容易混淆的问题。严格来说，最终应该优化的是整张编码图像对目标深度参数的 Fisher information，而不只是点源 PSF 的 Fisher。只是由于整张图像的参数维数非常高，直接计算和优化完整 Fisher matrix 往往代价极大，因此实际研究通常采用分层策略。
+
+\begin{enumerate}
+  \item 第一层是 PSF 级 Fisher：把单点或局部点目标作为最小物理单元，衡量编码器对深度变化是否敏感。它适合作为场景无关的物理初始化。
+  \item 第二层是局部场景或层状场景 Fisher：把深度分层后的图像表示成多个深度通道的组合，考察不同深度层、不同视场角和不同波长是否混淆。
+  \item 第三层是图像级/任务级目标：在真实或合成数据集上，用深度重建误差、蒸馏损失和互信息近似整体成像图的有效信息。
+\end{enumerate}
+
+因此，本课题的正确理解不是 ``只优化 PSF 的 Fisher''，而是：
+\begin{quote}
+用 PSF 级 Fisher 解决物理可观测性，用图像级和任务级目标逼近整图 Fisher 所代表的最终重建效果。
+\end{quote}
+
+\section{Fisher Information 与 CRLB 的物理意义}
+
+设相机观测 $\bm y$ 服从高斯噪声模型：
+\begin{equation}
+  \bm y \sim \mathcal N(\bm \mu(z,\alpha;\phi),\bm \Sigma),
+\end{equation}
+其中 $\bm \mu$ 是给定深度 $z$ 和视场角 $\alpha$ 时的期望传感器响应。若只估计一个标量深度 $z$，Fisher information 为
+\begin{equation}
+  \mathcal I_z(z,\alpha;\phi)
+  =
+  \left(\frac{\partial \bm \mu}{\partial z}\right)^\top
+  \bm \Sigma^{-1}
+  \left(\frac{\partial \bm \mu}{\partial z}\right).
+  \label{eq:fisher_scalar}
+\end{equation}
+它衡量图像响应相对于噪声对深度变化有多敏感。Cramér--Rao lower bound 表明任意无偏估计器的方差满足
+\begin{equation}
+  \mathrm{Var}(\hat z) \ge \frac{1}{\mathcal I_z(z,\alpha;\phi)}.
+\end{equation}
+因此，最大化 Fisher information 等价于降低理论深度误差下界。
+
+对长距离尤其重要的是，普通成像系统中深度引起的波前差异会随距离增大快速变弱。若不专门优化，远距离处不同深度的编码图像几乎相同，电子网络只能依赖语义猜测。Fisher/CRLB 驱动的设计则把优化目标改为：在目标远距离范围内让光学响应仍具有最大深度可辨性。
+
+\subsection{包含泊松噪声的形式}
+
+自然光成像中常见噪声不完全是高斯噪声。若光子计数近似为泊松分布：
+\begin{equation}
+  y_i \sim \mathrm{Poisson}(\mu_i(z,\alpha;\phi)),
+\end{equation}
+则标量深度的 Fisher information 为
+\begin{equation}
+  \mathcal I_z
+  =
+  \sum_i
+  \frac{1}{\mu_i(z,\alpha;\phi)}
+  \left(
+  \frac{\partial \mu_i(z,\alpha;\phi)}{\partial z}
+  \right)^2.
+\end{equation}
+这说明两个因素同时重要：响应随深度变化要大，且不能把光能分散到过暗、低信噪比的区域。因此一个看起来变化剧烈但透过率很低的编码未必好。
+
+\subsection{多参数 CRLB}
+
+若同时估计深度、亮度、局部纹理幅度和视场角，参数可写成
+\begin{equation}
+  \bm\theta=[z,\alpha_x,\alpha_y,a,b]^\top,
+\end{equation}
+其中 $a,b$ 可表示局部亮度和背景项。多参数 CRLB 为
+\begin{equation}
+  \mathrm{Cov}(\hat{\bm\theta})
+  \succeq
+  \bm F^{-1}.
+\end{equation}
+真正关心的深度方差下界是 $\left[\bm F^{-1}\right]_{zz}$，而不是简单的 $1/F_{zz}$。当深度与亮度或角度高度混淆时，$F_{zz}$ 可能很大，但 $\left[\bm F^{-1}\right]_{zz}$ 仍然很差。这也是宽视场设计必须使用多参数 Fisher matrix 的原因。
+
+\section{宽视场条件下的 Fisher Matrix}
+
+大视场下，深度 $z$ 与视场角 $\alpha$ 会发生混淆。边缘视场中 PSF 的变化可能来自深度，也可能来自离轴像差或入射角变化。此时应把参数写成
+\begin{equation}
+  \bm \theta = [z,\alpha_x,\alpha_y]^\top .
+\end{equation}
+对应 Fisher matrix 为
+\begin{equation}
+  \bm F(\bm \theta;\phi)
+  =
+  \bm J^\top \bm \Sigma^{-1}\bm J,\quad
+  \bm J=\frac{\partial \bm \mu(\bm \theta;\phi)}{\partial \bm \theta}.
+\end{equation}
+若只关心深度，而视场角、光照或其他变量作为干扰参数，则有效深度信息可由 Schur complement 得到：
+\begin{equation}
+  \mathcal I^{\mathrm{eff}}_z
+  =
+  F_{zz} -
+  \bm F_{z\eta}
+  \bm F_{\eta\eta}^{-1}
+  \bm F_{\eta z},
+  \label{eq:schur}
+\end{equation}
+其中 $\eta$ 表示视场角、光谱、亮度等 nuisance parameters。这个式子的物理意义是：扣除与其他变量混淆的那部分信息后，真正可用于估计深度的信息量。
+
+因此，面向长距离大视场的超表面优化目标不应只是让 $F_{zz}$ 大，而应让 $\mathcal I^{\mathrm{eff}}_z$ 大，即：
+\begin{equation}
+  \max_{\phi}
+  \min_{z\in \mathcal Z,\alpha\in \mathcal A}
+  \mathcal I^{\mathrm{eff}}_z(z,\alpha;\phi).
+  \label{eq:maxmin_fisher}
+\end{equation}
+其中 $\mathcal Z$ 是目标距离范围，$\mathcal A$ 是目标视场范围。
+
+\section{从 PSF 最优到图像最优}
+
+用户提出的关键质疑是正确的：即使式 \eqref{eq:maxmin_fisher} 的物理意义清晰，也未必保证真实自然图像上的最终重建效果最好。原因是自然场景是深度层、纹理、遮挡和光谱的叠加。为此建议采用三级优化目标。
+
+\subsection{第一级：点源/局部 Fisher 目标}
+
+该目标用于保证物理编码器本身对深度和视场角敏感：
+\begin{equation}
+  \mathcal L_{\mathrm{FI}}
+  =
+  \mathbb E_{z,\alpha}
+  \left[
+    \mathrm{Tr}\left(\bm W
+    \bm F^{-1}(z,\alpha;\phi)\right)
+  \right],
+\end{equation}
+或使用 max-min 形式提升最差距离和最差视场位置：
+\begin{equation}
+  \mathcal L_{\mathrm{worst}}
+  =
+  \max_{z,\alpha}
+  \mathrm{CRLB}_z(z,\alpha;\phi).
+\end{equation}
+
+\subsection{第二级：图像级可辨性目标}
+
+对 RGB-D 数据集中的真实或合成场景，通过可微渲染器生成超表面编码图 $\bm y_\phi$。优化目标不只看 PSF，而是看深度图扰动是否能被编码图区分：
+\begin{equation}
+  \mathcal L_{\mathrm{img}}
+  =
+  - I(\bm y_\phi;\bm D \mid \bm X)
+  \quad \text{或} \quad
+  \mathbb E
+  \left[
+  \ell(f_\psi(\bm y_\phi,\bm X),\bm D)
+  \right],
+\end{equation}
+其中 $I$ 是互信息，$f_\psi$ 是可训练深度解码器。实际实现中，互信息可用 InfoNCE、MINE 或对比学习近似。
+
+\subsection{第三级：任务级端到端目标}
+
+最终系统应直接优化深度重建和下游任务：
+\begin{equation}
+  \mathcal L_{\mathrm{task}}
+  =
+  \lambda_1 \mathcal L_{\mathrm{metric}}
+  + \lambda_2 \mathcal L_{\mathrm{grad}}
+  + \lambda_3 \mathcal L_{\mathrm{teacher}}
+  + \lambda_4 \mathcal L_{\mathrm{uncertainty}}
+  + \lambda_5 \mathcal L_{\mathrm{optical}}.
+\end{equation}
+其中 $\mathcal L_{\mathrm{teacher}}$ 来自 Depth Anything V2、ZoeDepth 或 Depth Pro 等深度基础模型，$\mathcal L_{\mathrm{optical}}$ 包含相位量化、透过率、最小线宽、制造误差和视场角约束。
+
+因此，推荐的研究路线不是 ``只优化 Fisher''，而是：
+\begin{equation}
+  \min_{\phi,\psi}
+  \mathcal L =
+  \lambda_{\mathrm{FI}}\mathcal L_{\mathrm{FI}}
+  + \lambda_{\mathrm{img}}\mathcal L_{\mathrm{img}}
+  + \lambda_{\mathrm{task}}\mathcal L_{\mathrm{task}}
+  + \lambda_{\mathrm{fab}}\mathcal L_{\mathrm{fab}}.
+  \label{eq:full_objective}
+\end{equation}
+Fisher/CRLB 提供物理可解释的第一性原理约束，图像级和任务级目标保证真实效果。
+
+\section{优化变量：相位分布如何参数化}
+
+直接优化超表面每个 meta-atom 的相位自由度非常大，容易不稳定，也不利于制造。建议从低维到高维逐步推进。
+
+\subsection{Zernike 或像差基}
+
+用 Zernike 多项式表示相位：
+\begin{equation}
+  \phi(\rho,\varphi)=
+  \sum_{m=1}^{M} c_m Z_m(\rho,\varphi).
+\end{equation}
+优点是与传统像差、离焦、彗差、像散等物理意义对应，适合早期探索和解释。
+
+\subsection{Fourier 或分块基}
+
+用 Fourier basis 或分区常数/分区多项式表示：
+\begin{equation}
+  \phi(x,y)=
+  \sum_{u,v} a_{uv}\cos(ux+vy)+b_{uv}\sin(ux+vy).
+\end{equation}
+优点是表达能力更强，适合搜索非传统 PSF。
+
+\subsection{多通道复用相位}
+
+若利用偏振或波长复用，可设计多个有效相位：
+\begin{equation}
+  \phi_x(x,y),\quad \phi_y(x,y),\quad
+  \phi_{\lambda_1}(x,y),\quad \phi_{\lambda_2}(x,y).
+\end{equation}
+这适合把不同距离段或不同视场区域分配给不同通道。例如一个通道偏向近中距离高精度，一个通道偏向远距离尺度锚定，一个通道偏向边缘视场稳定性。
+
+\subsection{多子超表面或多通道联合编码}
+
+对于长距离、大视角、自然光复杂真实场景，一个单一相位分布往往难以同时兼顾深度敏感性、角度解耦、宽谱鲁棒性、高透过率和可制造性。因此，一个值得重点探索的扩展方向是：在同一片器件上使用多个子区域或多个复用通道，让它们分别承担不同信息维度的提取任务。例如：
+\begin{itemize}
+  \item 通道 A：偏向长距离 depth Fisher 最大化；
+  \item 通道 B：偏向 depth-angle disentanglement，抑制边缘视场混淆；
+  \item 通道 C：偏向光谱/色散信息编码，提高自然光宽谱鲁棒性；
+  \item 通道 D：保留较高图像保真度，辅助语义和边界恢复。
+\end{itemize}
+
+在 Fisher 框架下，这种多通道系统的总信息量近似为各通道信息矩阵之和：
+\begin{equation}
+  \bm F_{\mathrm{total}}
+  =
+  \sum_{k=1}^{K}\bm F_k.
+\end{equation}
+其潜在优势不是每个子通道单独都最强，而是联合后能让深度方向的信息更大、参数间耦合更小、有效 CRLB 更低。代价则是每个通道分走部分能量、标定复杂度上升、以及多通道融合网络的设计难度增加。因此，建议把 ``双通道互补编码'' 作为可执行的第一版扩展：一个通道主攻深度敏感性，另一个通道主攻角度和宽谱解耦，再通过后端网络融合。
+
+\subsection{加入制造约束}
+
+最终相位必须映射到 meta-atom library：
+\begin{equation}
+  (w,l,h,\theta_{\mathrm{rot}})
+  \mapsto
+  (A_x,A_y,\phi_x,\phi_y).
+\end{equation}
+因此训练时需要加入相位量化、透过率惩罚、最小线宽和最大深宽比、偏振串扰约束以及随机制造误差扰动。
+
+\section{推荐总体算法}
+
+下面给出一个可直接转成代码的训练流程。
+
+\begin{enumerate}
+  \item 设定任务范围：距离 $\mathcal Z=[z_{\min},z_{\max}]$，视场 $\mathcal A=[-\alpha_{\max},\alpha_{\max}]^2$，波段 $\Lambda$，传感器噪声模型 $\bm\Sigma$。
+  \item 初始化相位参数 $\phi_0$，可从普通透镜、DH-PSF、旋转 PSF 或随机低频相位开始。
+  \item 对 $(z,\alpha,\lambda)$ 网格计算空间变化 PSF family：$\mathrm{PSF}(z,\alpha,\lambda;\phi)$。
+  \item 计算 Fisher matrix、有效深度信息、CRLB 热力图。
+  \item 在 RGB-D 数据集上用深度软切片渲染超表面编码图。
+  \item 用 teacher 模型生成相对深度、metric depth 或中间特征监督。
+  \item 联合优化相位 $\phi$ 和 decoder 参数 $\psi$。
+  \item 加入制造误差、曝光、噪声、光照、运动模糊、波长漂移等 domain randomization。
+  \item 固定相位，只微调 decoder，模拟真实硬件标定后的部署。
+  \item 输出最终相位、PSF 标定表、CRLB map、深度结果和不确定度结果。
+\end{enumerate}
+
+可写成如下优化问题：
+\begin{equation}
+  \begin{aligned}
+  \phi^\star,\psi^\star
+  =
+  \arg\min_{\phi,\psi}
+  &\quad
+  \lambda_1 \mathbb E[\mathrm{CRLB}_z]
+  + \lambda_2 \max_{z,\alpha}\mathrm{CRLB}_z \\
+  &+
+  \lambda_3 \mathcal L_{\mathrm{depth}}
+  + \lambda_4 \mathcal L_{\mathrm{distill}}
+  + \lambda_5 \mathcal L_{\mathrm{fab}}
+  + \lambda_6 \mathcal L_{\mathrm{robust}}.
+  \end{aligned}
+\end{equation}
+
+\section{超表面前端与深度基础模型后端}
+
+超表面前端的优势是提供真实物理深度线索，深度基础模型的优势是自然场景语义、边界和几何先验。二者最强的结合方式不是互相替代，而是分工：
+
+\begin{itemize}
+  \item 超表面：提供 metric anchor、局部深度梯度、宽视场下可标定物理 cue；
+  \item Depth Anything V2/MiDaS：提供强泛化相对深度、边界和语义结构；
+  \item ZoeDepth/Depth Pro：提供 metric depth teacher 或焦距/尺度先验；
+  \item 轻量 decoder：融合物理 cue 与语义先验，输出深度和不确定度。
+\end{itemize}
+
+推荐系统形式为
+\begin{equation}
+  \hat{\bm D},\hat{\bm U}
+  =
+  f_\psi(
+    \bm I_{\mathrm{rgb}},
+    \bm I_{\mathrm{meta}},
+    \bm R_{\mathrm{ray}},
+    \bm c_{\mathrm{calib}}
+  ),
+\end{equation}
+其中 $\bm R_{\mathrm{ray}}$ 是每个像素的视场角/光线方向，$\bm c_{\mathrm{calib}}$ 是由标定库、温度、焦距、曝光、波段等组成的系统状态编码，$\hat{\bm U}$ 是不确定度。
+
+这条路线的叙事很强：超表面通过 Fisher/CRLB 获得信息最优物理编码，计算后端再使用当前最强深度基础模型进行语义补全和蒸馏。前端和后端分别在物理和数据两个层面做到强。
+
+\subsection{方式一：作为 teacher}
+
+Depth Anything V2、MiDaS 或 Marigold 提供高质量相对深度结构；ZoeDepth 或 Depth Pro 提供 metric depth 或尺度先验。训练轻量 decoder 时使用：
+\begin{equation}
+  \mathcal L_{\mathrm{distill}}
+  =
+  \left\|
+  \mathrm{SSI}(\hat{\bm D}) -
+  \mathrm{SSI}(\bm D_{\mathrm{teacher}})
+  \right\|_1
+  +
+  \beta
+  \left\|
+  \nabla \hat{\bm D} -
+  \nabla \bm D_{\mathrm{teacher}}
+  \right\|_1,
+\end{equation}
+其中 SSI 表示 scale-and-shift invariant 对齐。
+
+\subsection{方式二：作为特征提取器}
+
+冻结 foundation encoder，把 RGB 图像输入 teacher，提取多尺度特征 $\bm F_T^l$。超表面分支输出 $\bm F_M^l$，通过投影头对齐：
+\begin{equation}
+  \mathcal L_{\mathrm{feat}}
+  =
+  \sum_l
+  \left\|
+  P_l(\bm F_M^l) - \bm F_T^l
+  \right\|_2^2.
+\end{equation}
+这相当于让超表面编码图不仅对深度有物理信息，也更接近强模型需要的视觉表征。
+
+\subsection{方式三：作为 prompt}
+
+把超表面物理 cue 做成 prompt 或额外 token 输入到 depth foundation model：
+\begin{equation}
+  \hat{\bm D}
+  =
+  T_{\mathrm{depth}}
+  (\bm I_{\mathrm{rgb}}, \bm P_{\mathrm{meta}}),
+\end{equation}
+其中 $\bm P_{\mathrm{meta}}$ 可包括编码图、置信度、估计尺度锚点、CRLB map 或局部深度候选。
+
+\subsection{方式四：部署时蒸馏到小模型}
+
+最终无人机或边缘平台不一定能运行大模型。可以训练阶段使用大模型，部署阶段只保留：
+\begin{equation}
+  \text{超表面} + \text{小型融合 decoder}.
+\end{equation}
+这使论文同时具备高性能叙事和轻量部署叙事。
+
+\section{大口径与大视场的关系}
+
+大视场并不简单等于超表面尺寸足够大，但长距离高精度确实强烈依赖有效口径。原因包括：
+
+\begin{itemize}
+  \item 大口径收集更多光子，提高信噪比；
+  \item 大口径提高角分辨率，改善远距离细节；
+  \item 大口径增强孔径内视差和离焦深度线索；
+  \item 远距离深度变化导致的波前曲率差异很小，需要更强物理基线。
+\end{itemize}
+
+然而，大视场还要求超表面对大入射角保持可控响应。大口径与大视场同时存在时，会带来更严重的离轴像差、空间变化 PSF、畸变、偏振串扰和制造难度。因此更准确的说法是：
+
+\begin{quote}
+长距离需要大有效口径，大视场需要角度鲁棒且空间变化可标定的超表面响应。
+\end{quote}
+
+这也是本课题的创新空间。可以设计 ``分区式'' 或 ``空间变化'' 超表面，使不同孔径区域对不同视场角和距离段贡献不同的信息；也可以设计多通道偏振/色散复用，使不同通道覆盖不同距离段或不同视场区域。
+
+\section{除了 Fisher/CRLB，还可以用哪些理论}
+
+Fisher information 和 CRLB 很适合做局部、可解释、低噪声近似下的光学编码分析，但它不是唯一选择。以下理论也适合本问题。
+
+\subsection{贝叶斯实验设计}
+
+把超表面看作实验设计变量 $\phi$，目标是选择最能减少深度后验不确定性的物理测量：
+\begin{equation}
+  \phi^\star
+  =
+  \arg\max_\phi
+  \mathbb E_{\bm D,\bm y}
+  \left[
+  \mathrm{KL}
+  \left(
+  p(\bm D|\bm y,\phi)
+  \Vert
+  p(\bm D)
+  \right)
+  \right].
+\end{equation}
+这等价于最大化观测 $\bm y$ 与深度 $\bm D$ 的互信息。它比局部 Fisher 更全局，能处理非线性和先验分布。
+
+\subsection{互信息最大化}
+
+直接优化
+\begin{equation}
+  \max_\phi I(\bm y_\phi;\bm D \mid \bm X)
+\end{equation}
+表示在给定 RGB 外观 $\bm X$ 后，超表面编码图还能提供多少额外深度信息。这非常符合本课题，因为我们真正关心的是：超表面是否提供了 RGB foundation model 缺失的信息。
+
+\subsection{D-optimal、A-optimal 和 E-optimal 设计}
+
+在 Fisher matrix 框架下，经典最优实验设计提供不同指标：
+\begin{itemize}
+  \item D-optimal：最大化 $\log\det \bm F$，提升总体参数体积信息；
+  \item A-optimal：最小化 $\mathrm{Tr}(\bm F^{-1})$，降低平均估计方差；
+  \item E-optimal：最大化 $\lambda_{\min}(\bm F)$，提升最差方向的信息量。
+\end{itemize}
+对于长距离大视场，E-optimal 或 max-min CRLB 特别有价值，因为它避免只在某些距离或中心视场表现好。
+
+\subsection{可观测性与条件数}
+
+在宽视场中，深度、视场角、亮度、纹理和光谱可能混淆。可以优化 Fisher matrix 的条件数：
+\begin{equation}
+  \kappa(\bm F)=\frac{\lambda_{\max}(\bm F)}{\lambda_{\min}(\bm F)}.
+\end{equation}
+条件数小表示不同参数方向更不容易混淆。这个指标适合解释
+``$\mathrm{PSF}(z_1,\alpha_1)$ 与 $\mathrm{PSF}(z_2,\alpha_2)$ 不混淆''。
+
+\subsection{压缩感知与 RIP 思想}
+
+若把深度场景看成分层稀疏或低维结构，超表面就是测量矩阵。可以要求不同深度层的响应字典具有低相关性：
+\begin{equation}
+  \mu =
+  \max_{i\neq j}
+  \frac{|\langle \bm h_i,\bm h_j\rangle|}
+  {\|\bm h_i\|\,\|\bm h_j\|}.
+\end{equation}
+这可以作为辅助目标，避免不同深度/角度响应高度相似。
+
+\subsection{最坏情况鲁棒优化}
+
+自然光和制造误差很复杂，建议加入 domain randomization 和鲁棒优化：
+\begin{equation}
+  \min_{\phi,\psi}
+  \max_{\delta\in\Delta}
+  \mathcal L_{\mathrm{task}}(\phi+\delta_\phi,\psi;\delta_{\mathrm{noise}},\delta_{\mathrm{illumination}}).
+\end{equation}
+它保证超表面不是只在理想仿真中有效。
+
+\section{推荐数据集}
+
+仿真阶段需要 RGB、dense depth、相机内参/视场、最好还有语义、位姿和多场景多光照。下表给出推荐选择。
+
+\begin{longtable}{p{2.6cm}p{3.2cm}p{4.2cm}p{4.4cm}}
+\toprule
+数据集 & 类型 & 优点 & 与本课题关系 \\
+\midrule
+\endhead
+TartanAir / TartanAir v2 &
+合成，机器人/无人机场景 &
+多环境、多天气、多光照，提供 RGB、depth、segmentation、pose，适合无人机和 SLAM；部分版本支持全景/多相机。 &
+最适合第一阶段仿真，能快速生成宽视场、运动、自然复杂场景，标注完整。 \\
+\addlinespace
+Hypersim &
+合成室内高真实感 &
+照片级室内场景，dense depth、语义、材质信息较丰富。 &
+适合验证自然光、复杂材质、密集深度重建，但偏室内，长距离不足。 \\
+\addlinespace
+Virtual KITTI 2 &
+合成自动驾驶 &
+有 RGB、depth、segmentation、天气/光照变化，标注完整。 &
+适合可控户外道路和中远距离实验，但场景域较窄。 \\
+\addlinespace
+DDAD &
+真实自动驾驶 &
+多相机，长距离 LiDAR 深度，覆盖可达约 250 m 量级，适合 dense depth 训练/评估。 &
+非常适合长距离真实场景评估；但 LiDAR 投影深度可能稀疏/不完整，需要补全或 mask loss。 \\
+\addlinespace
+DIODE &
+真实室内+室外 dense depth &
+提供室内外 RGB-D，室外有较大范围深度，质量较高。 &
+适合验证真实自然场景和室外泛化，可作为真实数据补充。 \\
+\addlinespace
+Waymo Open Dataset &
+真实自动驾驶 &
+多相机、多 LiDAR，大规模真实户外动态场景。 &
+适合最终真实长距离评估，但深度标签通常来自 LiDAR 投影，处理成本更高。 \\
+\addlinespace
+Argoverse 2 Sensor &
+真实自动驾驶 &
+多传感器、多城市、真实动态交通环境。 &
+适合补充真实复杂户外场景，尤其用于泛化评估。 \\
+\bottomrule
+\end{longtable}
+
+建议采用 ``合成完整标注 + 真实稀疏/半稠密验证'' 的组合：
+\begin{enumerate}
+  \item 第一阶段：TartanAir v2 + Virtual KITTI 2，快速完成超表面可微仿真和端到端训练；
+  \item 第二阶段：Hypersim + DIODE，验证复杂材质、真实室内外自然光；
+  \item 第三阶段：DDAD / Waymo / Argoverse 2，专门评估长距离和真实户外；
+  \item 数据缺失时：用 Depth Anything V2 / ZoeDepth / Depth Pro 生成伪标签，真实 LiDAR 区域使用 mask loss。
+\end{enumerate}
+
+\section{数据集详细选择策略}
+
+数据集选择要服务于三个目标：仿真可控、标注完整、真实验证。不存在一个完美数据集同时满足所有需求，因此建议分层组合。
+
+\subsection{第一优先级：TartanAir / TartanAir v2}
+
+TartanAir 特别适合作为第一阶段主数据集。它的优势是：合成数据使 RGB、depth、segmentation、pose 标注完整；场景接近机器人和无人机视觉；TartanAir v2 有多相机设置，可覆盖大视场甚至全景；同步和内参明确，适合构造空间变化 PSF 和 ray-angle 条件输入。它的不足是合成域与真实自然光之间存在 gap，因此不能作为唯一数据源。
+
+\subsection{第二优先级：DDAD}
+
+DDAD 的核心价值是长距离真实户外。它面向自动驾驶，包含多相机和高密度 LiDAR 生成的长距离深度，适合回答：我们的信息最优超表面编码是否真的改善远距离 metric depth？不足是场景偏车载，LiDAR 投影到相机后仍可能存在稀疏、遮挡和空洞，需要使用 mask loss。
+
+\subsection{第三优先级：DIODE}
+
+DIODE 是 dense indoor and outdoor depth 数据集，适合作为真实室内外泛化验证，尤其可测试自然场景、低纹理和复杂几何。它比纯自动驾驶数据更通用，但对无人机远距离大视场的覆盖仍不完整。
+
+\subsection{第四优先级：Virtual KITTI 2}
+
+Virtual KITTI 2 的价值在于可控对照。它提供 RGB、depth、segmentation、光流、场景流和不同天气/光照变体。虽然场景较窄，但适合做消融实验，例如只改变天气、只改变照明、只改变相机配置，观察超表面编码是否稳定。
+
+\subsection{最终真实评估：Waymo / Argoverse 2}
+
+Waymo Open Dataset 和 Argoverse 2 更适合最终真实户外评估和论文补充实验。它们规模大、传感器丰富，但处理链路复杂。对于开题和第一篇论文，不建议一开始就把它们作为主训练数据。
+
+\section{数据缺失时如何处理}
+
+很多真实数据集没有完全 dense 的真值深度，或者远距离 LiDAR 投影非常稀疏。可以采用以下策略：
+
+\begin{itemize}
+  \item 有 LiDAR 的像素使用 metric depth loss；
+  \item 无 LiDAR 的区域使用 teacher 相对深度蒸馏；
+  \item 边界区域使用 RGB 边缘和 teacher 梯度监督；
+  \item 用深度不确定度网络降低伪标签错误影响；
+  \item 用自监督视频重投影补充时序一致性；
+  \item 对远距离区域单独设置尺度锚点损失。
+\end{itemize}
+
+组合损失可写为：
+\begin{equation}
+  \mathcal L =
+  \lambda_m
+  \| \bm M_{\mathrm{lidar}}\odot(\hat{\bm D}-\bm D_{\mathrm{lidar}})\|_1
+  +
+  \lambda_t
+  \mathcal L_{\mathrm{teacher}}
+  +
+  \lambda_s
+  \mathcal L_{\mathrm{selfsup}}
+  +
+  \lambda_u
+  \mathcal L_{\mathrm{uncertainty}}.
+\end{equation}
+
+\section{仿真系统设计}
+
+仿真阶段建议实现一个可微的超表面成像模块：
+\begin{equation}
+  \bm I_{\mathrm{meta}}
+  =
+  \mathcal S
+  \left(
+  \int_\lambda
+  \sum_{k=1}^{K}
+  \bm H(z_k,\alpha,\lambda;\phi)
+  \bm M_k \odot \bm I_\lambda
+  d\lambda
+  \right)
+  + \bm n.
+\end{equation}
+其中 $\bm M_k$ 是深度软切片 mask，$\mathcal S$ 是传感器采样、Bayer、曝光、噪声和量化模型。关键模块包括：
+\begin{itemize}
+  \item 深度软切片：避免硬分层造成伪影；
+  \item 空间变化 PSF：不同视场角使用不同 PSF；
+  \item 光谱积分：自然光下模拟 RGB 或窄带/多窄带响应；
+  \item 传感器噪声：光子噪声、读出噪声、动态范围、曝光；
+  \item 制造误差：相位量化、透过率变化、装调偏差、温漂。
+\end{itemize}
+
+\subsection{为什么 RGB-D + PSF 卷积近似是合理的}
+
+真实超表面作用的对象严格来说是入射电磁场，而普通开源数据集通常只提供 RGB 和 depth，而不提供完整光场、物体反射谱、偏振态和相干信息。因此，仿真阶段不可能凭空得到完整真实光场。可行的近似来自自然场景成像的非相干假设：对多数自然光和漫反射场景，可以把最终图像近似为不同深度层强度图经过各自 PSF 模糊后相加。
+
+因此仿真链路是：
+\begin{enumerate}
+  \item 由超表面相位 $\phi$ 计算出不同深度、视场角、波长下的 PSF family；
+  \item 用 RGB-D 数据将场景切成多个深度层；
+  \item 每一层图像与对应 PSF 卷积；
+  \item 对所有深度层和所有波长通道求和，并加入噪声和传感器效应。
+\end{enumerate}
+
+这个模型并不是完整光场模拟，但它已经是 Deep Optics、PhaseCam3D、Depth from Defocus with Learned Optics、色散金属透镜深度成像等工作普遍使用的第一阶段近似。
+
+\subsection{这个近似的边界}
+
+RGB-D + layered PSF rendering 对以下情况通常是合理的一阶模型：
+\begin{itemize}
+  \item 自然光非相干成像；
+  \item 以漫反射和弱镜面反射为主的场景；
+  \item 需要比较不同相位设计、不同编码策略的相对优劣；
+  \item 需要建立大规模训练数据而没有真实硬件。
+\end{itemize}
+
+但它对以下现象描述不足：
+\begin{itemize}
+  \item 强镜面反射、透明体、多路径和体散射；
+  \item 真实宽光谱反射率和照明谱分布；
+  \item 偏振敏感材质；
+  \item 超表面加工误差带来的细节偏差；
+  \item 空间变化严重时的全局卷积近似误差。
+\end{itemize}
+
+因此，本课题的立场应当是：
+\begin{quote}
+RGB-D + PSF 卷积仿真用于设计、筛选和训练；真实 PSF 标定与少量实拍数据用于 sim-to-real 校正与最终可信验证。
+\end{quote}
+
+\subsection{与参考文献中的仿真数据一致性}
+
+这一仿真路线并非孤例。PhaseCam3D 使用 FlyingThings3D / Scene Flow 等 RGB-D 数据，通过 depth-dependent PSF 生成 coded image；Depth from Defocus with Learned Optics 用 FlyingThings3D 和 DualPixels 数据，并在真实原型阶段采集 PSF 做 refinement；3D Imaging Using Extreme Dispersion in Optical Metasurfaces 使用 SceneFlow 数据集的 RGB 和 disparity/depth，并通过分层卷积渲染生成金属透镜编码图。换言之，现有代表工作也并非在完整真实光场上大规模训练。
+
+\section{实验设计}
+
+推荐对比组：
+\begin{itemize}
+  \item RGB-only 小模型：FastDepth、Lite-Mono small 或 MobileNet decoder；
+  \item RGB foundation baseline：Depth Anything V2、ZoeDepth、Depth Pro；
+  \item 固定光学编码：双螺旋 PSF、旋转 PSF、色散 PSF；
+  \item Fisher-only 超表面：只用物理信息目标优化；
+  \item Full objective：Fisher + 图像互信息 + task loss + teacher distillation；
+  \item Oracle/upper bound：真实 depth cue 或 LiDAR prompt。
+\end{itemize}
+
+评价指标应覆盖平均深度和关键痛点：
+\begin{itemize}
+  \item AbsRel、RMSE、SILog、$\delta_1$；
+  \item 远距离分段误差：5--20 m、20--50 m、50--100 m；
+  \item 视场分段误差：中心、中间、边缘；
+  \item metric scale error；
+  \item 深度边界 F-score；
+  \item 低纹理/强光/阴影/反光子集误差；
+  \item 不确定度校准：ECE、NLL；
+  \item 参数量、MACs、FPS 和能耗估计。
+\end{itemize}
+
+\section{实验消融设计}
+
+为了证明不是简单叠加模块，必须设计清晰消融。
+
+\subsection{光学设计消融}
+
+\begin{itemize}
+  \item 普通透镜；
+  \item 固定 DH-PSF；
+  \item 固定旋转 PSF；
+  \item 固定色散编码；
+  \item Fisher-only 相位；
+  \item Fisher + 图像互信息相位；
+  \item Fisher + 互信息 + 任务损失相位；
+  \item 加制造约束前后对比。
+\end{itemize}
+
+\subsection{视场消融}
+
+按像素 ray angle 分成中心、中间和边缘区域：
+\begin{equation}
+  \mathcal A_1:0^\circ\!-\!20^\circ,\quad
+  \mathcal A_2:20^\circ\!-\!45^\circ,\quad
+  \mathcal A_3:45^\circ\!-\!60^\circ.
+\end{equation}
+分别报告 AbsRel、RMSE、scale error 和 CRLB。
+
+\subsection{距离消融}
+
+建议至少分为：
+\begin{equation}
+  0.5\!-\!5m,\quad 5\!-\!20m,\quad 20\!-\!50m,\quad 50\!-\!100m.
+\end{equation}
+这样能直接证明方法不是只改善近距离。
+
+\subsection{后端模型消融}
+
+\begin{itemize}
+  \item 小模型 RGB-only；
+  \item 小模型 Meta-only；
+  \item 小模型 RGB+Meta；
+  \item RGB+Meta+ray angle；
+  \item RGB+Meta+ray angle+teacher distillation；
+  \item 大模型 prompt；
+  \item 蒸馏后小模型部署。
+\end{itemize}
+
+\section{潜在创新点}
+
+本课题可以凝练为以下创新：
+
+\begin{enumerate}
+  \item 提出面向长距离宽视场被动单目深度重建的信息最优超表面编码设计框架；
+  \item 将 Fisher information、CRLB、nuisance parameter marginalization 引入超表面宽视场深度编码优化；
+  \item 从 PSF 级优化扩展到图像级互信息和任务级端到端优化，解决复杂自然场景中编码失效问题；
+  \item 结合深度基础模型蒸馏，让物理 metric cue 与语义几何先验协同；
+  \item 构建面向长距离、大视场、自然光的系统性仿真与评估 benchmark。
+\end{enumerate}
+
+\section{推荐技术路线}
+
+\begin{enumerate}
+  \item 建立空间变化、光谱感知、可微的超表面成像模型；
+  \item 从简单相位参数化开始，如 Zernike、多项式、分区相位、Fourier basis，而不是直接优化百万像素相位；
+  \item 计算不同设计下的 $\mathcal I_z^{\mathrm{eff}}$ 和 CRLB 热力图，验证长距离/边缘视场是否改善；
+  \item 在 TartanAir/Virtual KITTI 上生成编码图，训练轻量 decoder；
+  \item 引入 Depth Anything V2/ZoeDepth teacher，做蒸馏和 metric calibration；
+  \item 加入真实数据 DIODE/DDAD，使用 mask loss 与伪标签联合训练；
+  \item 加入制造约束和 domain randomization，验证可制造性与鲁棒性；
+  \item 若条件允许，用 SLM/DOE 或简单相位板先做硬件原型验证。
+\end{enumerate}
+
+\section{论文叙事建议}
+
+如果后续写论文，建议不要把题目写成 ``基于超表面和深度学习的深度估计''。这个表达太宽，容易显得像组合式工程。更好的叙事是：
+
+\begin{quote}
+Information-optimal metasurface encoding for long-range wide-field passive monocular metric depth.
+\end{quote}
+
+它强调四个关键词：information-optimal 表明不是经验 PSF，而是有理论目标；metasurface encoding 表明核心硬件创新；long-range wide-field 对准痛点；passive monocular metric depth 区别于 LiDAR、双目、主动结构光和纯相对单目深度。
+
+摘要中可以这样组织：
+\begin{enumerate}
+  \item 现有单目基础模型缺少物理尺度线索；
+  \item 现有超表面深度传感多受限于近距离、窄视场或简单场景；
+  \item 本文提出信息最优超表面编码框架，用 Fisher/CRLB 和互信息联合优化相位；
+  \item 该编码在长距离宽视场中最大化有效深度信息，并减少深度--视场角混淆；
+  \item 结合深度基础模型蒸馏，实现自然场景 metric depth 重建。
+\end{enumerate}
+
+\section{阶段计划}
+
+\begin{longtable}{p{2.3cm}p{5.2cm}p{5.8cm}}
+\toprule
+阶段 & 目标 & 产出 \\
+\midrule
+\endhead
+1--2周 & 实现基础 Fourier optics / PSF 仿真，复现普通透镜、DH-PSF、旋转 PSF。 & PSF 随深度和视场角变化图；基础 CRLB 曲线。 \\
+\addlinespace
+3--4周 & 实现 Fisher matrix 和 max-min CRLB 优化，低维相位参数搜索。 & 信息最优相位初版；与人工 PSF 的 CRLB 对比。 \\
+\addlinespace
+5--7周 & 接入 TartanAir / Virtual KITTI 2，生成超表面编码图。 & RGB-D 到编码图的数据管线；空间变化 PSF 渲染器。 \\
+\addlinespace
+8--10周 & 训练小型 decoder，加入 Depth Anything / ZoeDepth 蒸馏。 & 第一版定量结果；距离和视场分段评估。 \\
+\addlinespace
+11--13周 & 加入 DIODE / DDAD 真实数据，处理稀疏标签和伪标签。 & 真实场景泛化结果；长距离评估。 \\
+\addlinespace
+14--16周 & 加入制造约束、噪声、光照、波长、装调误差随机化。 & 可制造相位和鲁棒性消融。 \\
+\addlinespace
+17周以后 & 整理论文或开题报告，若有条件做 SLM/DOE 原型。 & 完整 proposal / paper draft / 原型实验设计。 \\
+\bottomrule
+\end{longtable}
+
+\section{主要风险与应对}
+
+\subsection{风险一：Fisher 最优不等于图像最优}
+
+应对：把 Fisher 作为正则和解释工具，而不是唯一目标；加入图像级互信息和任务级 depth loss。
+
+\subsection{风险二：自然光宽谱导致编码退化}
+
+应对：设计多波段或窄带复用；仿真中加入光谱积分；评估带通滤波与无滤波的性能差异。
+
+\subsection{风险三：大视场边缘编码混淆严重}
+
+应对：引入 ray-angle 条件 decoder；优化有效 Fisher 信息；为边缘视场单独加权。
+
+\subsection{风险四：相位不可制造}
+
+应对：从训练开始加入 meta-atom library、相位量化、透过率、最小线宽和随机制造误差。
+
+\subsection{风险五：真实数据缺少 dense depth}
+
+应对：合成数据用于完整监督，真实数据用于 mask metric loss 和 teacher/self-supervised 约束。
+
+\subsection{风险六：自然光宽谱会冲淡深度编码}
+
+很多超表面深度文章使用单波长、窄带滤波器或受控照明，这在实验上干净，但对自然光真实场景是一种很强的简化。自然光是宽光谱，物体反射谱也不一致；同一个深度的 PSF 会被不同波长响应积分，可能把原本清晰的深度编码平均掉。若为了保持编码只使用极窄带滤波器，又会显著损失光通量，长距离场景的 SNR 会恶化。
+
+应对：把波长 $\lambda$ 明确作为 nuisance parameter 纳入 Fisher matrix 和图像形成模型；比较三种硬件路线：无滤波宽谱编码、多窄带复用编码、窄带高 SNR 编码；评价时必须报告自然光谱扰动下的性能，而不是只报告单波长仿真。
+
+\subsection{风险七：长距离物理信息可能天然太弱}
+
+长距离下深度变化导致的波前曲率差异非常小，即使使用信息最优相位，也不能违反物理极限。如果口径、像素尺寸、曝光时间和光通量不足，CRLB 可能仍然很差。这意味着算法再强也无法从几乎没有信息的测量中恢复高精度深度。
+
+应对：在课题早期必须画出不同口径、距离、FOV、SNR 下的 CRLB feasibility map。如果在 50--100 m 区间理论下界已经不可接受，就应把系统目标改成 ``远距离尺度锚点/障碍物距离分段''，而不是承诺稠密厘米级深度。
+
+\subsection{风险八：大视角和大口径可能互相冲突}
+
+大口径有利于长距离和 SNR，大视角要求强离轴性能；二者同时存在时，超表面会面临严重空间变化像差、偏振串扰、相位采样困难和加工面积成本。单片超表面能否同时做到大口径、大视角、高效率和可制造，是一个真实硬件风险。
+
+应对：先在仿真中把 ``单片全局相位'' 与 ``分区相位/多孔径阵列/普通镜头+超表面编码片'' 做比较。若单片方案不可行，论文仍可转向信息最优编码策略本身，而硬件实现采用更稳妥的混合光学结构。
+
+\subsection{风险九：基础模型可能掩盖超表面贡献}
+
+Depth Anything、ZoeDepth、Depth Pro 等模型很强。如果最终提升主要来自大模型，而不是超表面物理编码，论文贡献会变弱。审稿人会问：没有超表面，仅用 RGB 和更强模型是否也能做到？
+
+应对：必须设置严格消融：RGB-only teacher、RGB-only 小模型、随机相位、人工 PSF、Fisher 相位、真实/模拟 Meta cue。还要报告低纹理、尺度不典型、远距离和边缘视场这些纯 RGB 最容易失败的子集。
+
+\subsection{风险十：仿真到真实迁移可能失败}
+
+超表面仿真依赖理想相位、理想透过率、理想对准和理想传感器模型。真实器件会有加工误差、表面污染、温漂、封装偏差、传感器非线性、杂散光和光谱响应偏差。仿真中最优的相位在真实硬件上可能不是最优。
+
+应对：训练阶段加入 domain randomization；把真实 PSF 标定库作为模型输入；用少量真实标定样本做 sim-to-real 微调；论文中把 ``可标定性'' 作为核心贡献之一，而不是假设仿真模型完全正确。
+
+\subsection{风险十一：数据集不完全匹配无人机真实需求}
+
+TartanAir 接近无人机但仍是合成数据；DDAD/Waymo 长距离真实但偏车载；DIODE 更通用但规模和动态性有限。没有一个数据集完全对应 ``无人机 + 大视角 + 长距离 + 自然光 + dense depth''。
+
+应对：采用组合 benchmark，并明确每个数据集验证的能力不同。TartanAir 验证算法链路和宽视场，DDAD 验证长距离真实 metric，DIODE 验证自然场景泛化，Virtual KITTI 2 做可控光照消融。
+
+\section{结论}
+
+面向长距离、大视场、高精度、自然光复杂真实场景，超表面深度重建的关键不应是选择某个已有 PSF 形态，而应是根据目标任务反向设计最优物理测量。Fisher information 和 CRLB 给出可解释的深度敏感性和理论误差下界；贝叶斯实验设计、互信息和端到端任务损失进一步把优化目标从点源 PSF 推广到自然图像和最终深度重建。结合 Depth Anything V2、ZoeDepth、Depth Pro 等深度基础模型后，系统可以同时利用物理 metric cue 与语义先验。
+
+因此，本课题最有价值的叙事是：
+\begin{quote}
+通过信息最优超表面相位设计，在采集端最大化长距离宽视场场景中的可观测深度信息，再通过深度基础模型实现自然场景中的高精度 metric depth 重建。
+\end{quote}
+
+这一路线把 ``超表面 + AI'' 从工程拼接提升为任务驱动的物理--统计--学习联合设计，具有较强的论文潜力。
+
+\section*{参考方向与项目}
+
+\begin{itemize}
+  \item Nano-3D: Metasurface-Based Neural Depth Imaging, arXiv:2503.15770.
+  \item Target-depth sensing with metasurface-encoder integrated optoelectronic neural network, arXiv:2604.25160.
+  \item Monocular metasurface camera for passive single-shot 4D imaging, Nature Communications, 2023.
+  \item 3D Imaging Using Extreme Dispersion in Optical Metasurfaces, ACS Photonics, 2021.
+  \item Deep Optics for Monocular Depth Estimation and 3D Object Detection, ICCV 2019.
+  \item PhaseCam3D / learned phase masks for passive single-view depth estimation.
+  \item Depth Anything V2, ZoeDepth, Depth Pro, MiDaS.
+  \item TartanAir, Hypersim, Virtual KITTI 2, DIODE, DDAD, Waymo Open Dataset, Argoverse 2.
+\end{itemize}
+
+\end{document}
